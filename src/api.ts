@@ -25,6 +25,81 @@ export interface AuxOutputState {
 	mode: string
 }
 
+/** A column of the Modo PLume grid (`<column>` of `<composition>`), Coluna 1 = the left one. */
+export interface CompositionColumn {
+	number: number
+	key: string
+	/** The name shown on the grid ("Coluna N" when it has none). */
+	name: string
+}
+
+/** A cell of a layer that holds a clip (`<clip>` of a `<layer>`; empty cells are not listed). */
+export interface CompositionClip {
+	column: number
+	/** The input's number in the list. */
+	input: number
+	key: string
+	/** The name shown on the grid (the input's name when the cell has none). */
+	name: string
+	/** "Loop", "OnceClear" or "OnceHold". */
+	playMode: string
+	/** "Normal" or "Toggle". */
+	trigger: string
+	/** "#RRGGBB", or "" when none. */
+	color: string
+	/** On air in its layer. */
+	connected: boolean
+}
+
+/** A layer of the grid (`<layer>`); Camada 1 is the bottom one. */
+export interface CompositionLayer {
+	number: number
+	key: string
+	/** The name shown on the grid ("Camada N" when it has none). */
+	name: string
+	/** 0–100. */
+	opacity: number
+	volume: number
+	/** "Alpha", "Add", "Screen", "Multiply" or "LumaKey". */
+	blend: string
+	bypass: boolean
+	solo: boolean
+	locked: boolean
+	ignoreColumnTrigger: boolean
+	/** "Fade" or "Cut". */
+	transition: string
+	transitionMs: number
+	autopilot: string
+	/** Column of the clip on air (0 = none) and its input. */
+	clip: number
+	input: number
+	/** "Running", "Paused", "Completed" or "Empty". */
+	state: string
+	/** When the XML was read: milliseconds since the clip's IN, its duration (0 for live inputs and images), what is left. */
+	position: number
+	duration: number
+	remaining: number
+	/** The layer's clock is in the warning colour (the clip is ending). */
+	warning: boolean
+	clips: CompositionClip[]
+}
+
+/** The Modo PLume grid (`<composition>`, Projetech Studio 1.5 or newer, whenever the project has a grid). */
+export interface CompositionState {
+	/** The mode is on (the grid drives the program). */
+	enabled: boolean
+	/** Video master of the composition, 0–100. */
+	master: number
+	/** The column fired last, the selected layer and column (0 = none). */
+	column: number
+	selectedLayer: number
+	selectedColumn: number
+	columns: CompositionColumn[]
+	layers: CompositionLayer[]
+	/** Date.now() when the XML was read: the layers' clocks run on from it between polls. */
+	readAt: number
+}
+
 /** Everything the module knows about Projetech Studio; feedbacks and variables are computed from this. */
 export interface StudioState {
 	inputs: StudioInput[]
@@ -46,6 +121,8 @@ export interface StudioState {
 	connected: boolean
 	/** Master/slave link of this Projetech Studio with another one (the `<sync>` element of the XML state). */
 	sync: SyncState
+	/** The Modo PLume grid; null when the project has none or Projetech Studio is older than 1.5. */
+	composition: CompositionState | null
 }
 
 /** Role of this computer on the master/slave link. */
@@ -76,11 +153,26 @@ const ACTIVATOR_FLAGS: Record<string, Flag> = {
 	FadeToBlack: 'fadeToBlack',
 }
 
+/** The feedbacks that read the Modo PLume grid: re-checked when the grid's signature changes. */
+export const COMPOSITION_FEEDBACKS = [
+	'clipActive',
+	'clipSelected',
+	'clipEmpty',
+	'columnActive',
+	'layerBypass',
+	'layerSolo',
+	'layerEnding',
+	'compositionMode',
+]
+
 /** Bigger than any real XML state; protects against a peer that never sends a line break. */
 const MAX_BUFFER_BYTES = 8 * 1024 * 1024
 
 /** An XML request that got no answer for this long is considered lost and is sent again. */
 const XML_RESPONSE_TIMEOUT_MS = 5000
+
+/** While a clip plays, the layers' clocks (variables) are recomputed this often, between the XML polls. */
+const CLOCK_INTERVAL_MS = 250
 
 const emptySync = (): SyncState => ({
 	role: 'standalone',
@@ -105,9 +197,85 @@ const emptyState = (): StudioState => ({
 	tally: '',
 	connected: false,
 	sync: emptySync(),
+	composition: null,
 })
 
 const ROLES: Record<string, SyncRole> = { Master: 'master', Slave: 'slave' }
+
+/** An element of the parsed XML: attributes under ATTR + name, child elements by tag, text under `text`. */
+type XmlNode = Record<string, unknown>
+
+/**
+ * Attributes are read with a prefix: `<composition column="2">` has `<column>` children and `<layer clip="1">` has
+ * `<clip>` children, and without a prefix the attribute would replace them.
+ */
+const ATTR = '@_'
+
+/** The child elements of a tag (one, several or none), as a list. */
+const nodes = (raw: unknown): XmlNode[] =>
+	(raw === undefined || raw === null ? [] : Array.isArray(raw) ? raw : [raw]).filter(
+		(n): n is XmlNode => typeof n === 'object' && n !== null,
+	)
+
+/** A value read from the XML as text (the parser keeps attributes and texts as strings). */
+const asText = (v: unknown): string =>
+	typeof v === 'string' ? v : typeof v === 'number' || typeof v === 'boolean' ? String(v) : ''
+
+const attr = (n: XmlNode | undefined, name: string): string => asText(n?.[ATTR + name])
+
+const attrInt = (n: XmlNode | undefined, name: string): number => parseInt(attr(n, name), 10) || 0
+
+const attrBool = (n: XmlNode | undefined, name: string): boolean => attr(n, name) === 'True'
+
+/** The text of a text-only element (`<active>3</active>`), or of an element with attributes and text (`<input …>Name</input>`). */
+const text = (v: unknown): string => (typeof v === 'object' && v !== null ? asText((v as XmlNode).text) : asText(v))
+
+/** The `<composition>` element (the Modo PLume grid) as state; null when it is absent. */
+export function parseComposition(raw: unknown, readAt: number): CompositionState | null {
+	const c = nodes(raw)[0]
+	if (!c) return null
+	return {
+		enabled: attrBool(c, 'enabled'),
+		master: attrInt(c, 'master'),
+		column: attrInt(c, 'column'),
+		selectedLayer: attrInt(c, 'selectedLayer'),
+		selectedColumn: attrInt(c, 'selectedColumn'),
+		columns: nodes(c.column).map((n) => ({ number: attrInt(n, 'number'), key: attr(n, 'key'), name: attr(n, 'name') })),
+		layers: nodes(c.layer).map((n) => ({
+			number: attrInt(n, 'number'),
+			key: attr(n, 'key'),
+			name: attr(n, 'name'),
+			opacity: attrInt(n, 'opacity'),
+			volume: attrInt(n, 'volume'),
+			blend: attr(n, 'blend'),
+			bypass: attrBool(n, 'bypass'),
+			solo: attrBool(n, 'solo'),
+			locked: attrBool(n, 'locked'),
+			ignoreColumnTrigger: attrBool(n, 'ignoreColumnTrigger'),
+			transition: attr(n, 'transition'),
+			transitionMs: attrInt(n, 'transitionMs'),
+			autopilot: attr(n, 'autopilot'),
+			clip: attrInt(n, 'clip'),
+			input: attrInt(n, 'input'),
+			state: attr(n, 'state'),
+			position: attrInt(n, 'position'),
+			duration: attrInt(n, 'duration'),
+			remaining: attrInt(n, 'remaining'),
+			warning: attrBool(n, 'warning'),
+			clips: nodes(n.clip).map((x) => ({
+				column: attrInt(x, 'column'),
+				input: attrInt(x, 'input'),
+				key: attr(x, 'key'),
+				name: attr(x, 'name'),
+				playMode: attr(x, 'playMode'),
+				trigger: attr(x, 'trigger'),
+				color: attr(x, 'color'),
+				connected: attrBool(x, 'connected'),
+			})),
+		})),
+		readAt,
+	}
+}
 
 /**
  * Client for the Projetech Studio TCP API (port 8099), which follows the vMix TCP API:
@@ -116,19 +284,20 @@ const ROLES: Record<string, SyncRole> = { Master: 'master', Slave: 'slave' }
  * - simple replies are one line too (`TALLY OK 0120`, `ACTS OK Recording 1`, `FUNCTION ER <message>`);
  * - `XML` is answered with `XML <length>` followed by the XML document, where length counts UTF-8 bytes.
  *
- * Tally and activators (recording, outputs…) are pushed by the server after SUBSCRIBE; the rest of the state
- * (input names, positions, preview/program) comes from polling `XML`.
+ * Tally and activators (recording, outputs, the grid's clips and columns…) are pushed by the server after SUBSCRIBE;
+ * the rest of the state (input names, positions, preview/program, the grid) comes from polling `XML`.
  */
 export class StudioApi {
 	private socket: TCPHelper | null = null
 	/** Bytes received and not parsed yet. Kept as bytes because the XML length is in bytes and chunks can split characters. */
 	private buffer: Buffer = Buffer.alloc(0)
 	private pollTimer: NodeJS.Timeout | null = null
+	private clockTimer: NodeJS.Timeout | null = null
 	/** Time the unanswered XML request was sent (0 = none pending): only one XML request is in flight at a time. */
 	private xmlRequestedAt = 0
 	private readonly parser = new XMLParser({
 		ignoreAttributes: false,
-		attributeNamePrefix: '',
+		attributeNamePrefix: ATTR,
 		textNodeName: 'text',
 		parseTagValue: false,
 		parseAttributeValue: false,
@@ -159,11 +328,18 @@ export class StudioApi {
 		})
 		this.socket.on('data', (data) => this.onData(data))
 		this.pollTimer = setInterval(() => this.requestXml(), pollInterval)
+		// The layers' remaining time keeps counting between polls (only the values that changed are sent).
+		this.clockTimer = setInterval(() => {
+			if (this.state.composition?.layers.some((l) => l.clip > 0 && l.state === 'Running'))
+				this.instance.updateVariables()
+		}, CLOCK_INTERVAL_MS)
 	}
 
 	disconnect(): void {
 		if (this.pollTimer) clearInterval(this.pollTimer)
+		if (this.clockTimer) clearInterval(this.clockTimer)
 		this.pollTimer = null
+		this.clockTimer = null
 		this.socket?.destroy()
 		this.socket = null
 		this.buffer = Buffer.alloc(0)
@@ -247,63 +423,109 @@ export class StudioApi {
 				this.instance.checkFeedbacks('tally')
 			}
 		} else if (line.startsWith('ACTS OK ')) {
-			// Activator pushes, e.g. "ACTS OK Recording 1". Input activators are covered by the tally string.
-			const [name, value] = line.slice(8).trim().split(' ')
-			const flag = ACTIVATOR_FLAGS[name]
-			const on = value === '1'
-			if (flag && this.state[flag] !== on) {
-				this.state[flag] = on
-				this.afterStateChange(true)
-			}
+			// Activator pushes: "ACTS OK <name> [args…] <value>", the value is the last word ("Recording 1", "Input 3 1",
+			// "LayerClip 2 1 1"). Input activators are covered by the tally string.
+			const words = line.slice(8).trim().split(/\s+/)
+			if (words.length >= 2) this.onActivator(words[0], words.slice(1, -1), words[words.length - 1])
 		} else if (line.startsWith('FUNCTION ER ')) {
 			this.instance.log('warn', line.slice(12))
 		}
 	}
 
+	/** One activator push: the switcher's flags, and the grid's clips, columns and layer switches (Projetech Studio 1.5). */
+	private onActivator(name: string, args: string[], value: string): void {
+		const on = value === '1'
+		const flag = ACTIVATOR_FLAGS[name]
+		if (flag !== undefined && args.length === 0) {
+			if (this.state[flag] !== on) {
+				this.state[flag] = on
+				this.afterStateChange(true)
+			}
+			return
+		}
+		const comp = this.state.composition
+		if (!comp) return
+		const before = this.compositionSignature()
+		const n = args.map((a) => parseInt(a, 10))
+		const layer = comp.layers.find((l) => l.number === n[0])
+		switch (name) {
+			case 'LayerClip': {
+				const clip = layer?.clips.find((c) => c.column === n[1])
+				if (!layer || !clip) return
+				if (on) {
+					for (const c of layer.clips) c.connected = c === clip
+					layer.clip = clip.column
+					layer.input = clip.input
+				} else {
+					clip.connected = false
+					if (layer.clip === clip.column) {
+						layer.clip = 0
+						layer.input = 0
+					}
+				}
+				break
+			}
+			case 'Column':
+				if (on) comp.column = n[0]
+				else if (comp.column === n[0]) comp.column = 0
+				break
+			case 'LayerBypass':
+				if (layer) layer.bypass = on
+				break
+			case 'LayerSolo':
+				if (layer) layer.solo = on
+				break
+			case 'LayerEnding':
+				if (layer) layer.warning = on
+				break
+			default:
+				return
+		}
+		if (this.compositionSignature() !== before) this.afterStateChange(false, true)
+	}
+
 	private onXml(xml: string): void {
 		try {
-			const doc = this.parser.parse(xml)?.vmix
+			const doc = this.parser.parse(xml)?.vmix as XmlNode | undefined
 			if (!doc) return
-			const raw = doc.inputs?.input
-			const list: Record<string, string>[] = raw === undefined ? [] : Array.isArray(raw) ? raw : [raw]
 			const flagsBefore = this.flagSignature()
-			this.state.inputs = list.map((i) => ({
-				number: parseInt(i.number, 10),
-				key: i.key ?? '',
-				title: i.title ?? i.text ?? '',
-				type: i.type ?? '',
-				state: i.state ?? '',
-				position: parseInt(i.position ?? '0', 10) || 0,
-				duration: parseInt(i.duration ?? '0', 10) || 0,
-				loop: i.loop === 'True',
+			const compositionBefore = this.compositionSignature()
+			this.state.inputs = nodes((doc.inputs as XmlNode | undefined)?.input).map((i) => ({
+				number: attrInt(i, 'number'),
+				key: attr(i, 'key'),
+				title: attr(i, 'title') || text(i),
+				type: attr(i, 'type'),
+				state: attr(i, 'state'),
+				position: attrInt(i, 'position'),
+				duration: attrInt(i, 'duration'),
+				loop: attrBool(i, 'loop'),
 			}))
-			this.state.active = parseInt(String(doc.active ?? '0'), 10) || 0
-			this.state.preview = parseInt(String(doc.preview ?? '0'), 10) || 0
-			this.state.recording = String(doc.recording) === 'True'
-			this.state.streaming = String(doc.streaming) === 'True'
-			this.state.fullscreen = String(doc.fullscreen) === 'True'
-			this.state.external = String(doc.external) === 'True'
-			this.state.fadeToBlack = String(doc.fadeToBlack) === 'True'
-			const rawAux = doc.auxOutputs?.auxOutput
-			const auxList: Record<string, string>[] = rawAux === undefined ? [] : Array.isArray(rawAux) ? rawAux : [rawAux]
-			this.state.auxOutputs = auxList.map((o) => ({
-				number: parseInt(o.number, 10) || 0,
-				active: o.active === 'True',
-				mode: o.mode ?? '',
+			this.state.active = parseInt(text(doc.active), 10) || 0
+			this.state.preview = parseInt(text(doc.preview), 10) || 0
+			this.state.recording = text(doc.recording) === 'True'
+			this.state.streaming = text(doc.streaming) === 'True'
+			this.state.fullscreen = text(doc.fullscreen) === 'True'
+			this.state.external = text(doc.external) === 'True'
+			this.state.fadeToBlack = text(doc.fadeToBlack) === 'True'
+			this.state.auxOutputs = nodes((doc.auxOutputs as XmlNode | undefined)?.auxOutput).map((o) => ({
+				number: attrInt(o, 'number'),
+				active: attrBool(o, 'active'),
+				mode: attr(o, 'mode'),
 			}))
-			const sync = doc.sync as Record<string, string> | undefined
+			const sync = nodes(doc.sync)[0]
 			this.state.sync = sync
 				? {
-						role: ROLES[sync.role ?? ''] ?? 'standalone',
-						state: sync.state ?? '',
-						linked: sync.connected === 'True',
-						partner: sync.partner ?? '',
-						partnerAddress: sync.partnerAddress ?? '',
-						promoted: sync.promoted === 'True',
-						partnerStreaming: sync.partnerStreaming === 'True',
+						role: ROLES[attr(sync, 'role')] ?? 'standalone',
+						state: attr(sync, 'state'),
+						linked: attrBool(sync, 'connected'),
+						partner: attr(sync, 'partner'),
+						partnerAddress: attr(sync, 'partnerAddress'),
+						promoted: attrBool(sync, 'promoted'),
+						partnerStreaming: attrBool(sync, 'partnerStreaming'),
 					}
 				: emptySync()
-			this.afterStateChange(this.flagSignature() !== flagsBefore)
+			this.state.composition = parseComposition(doc.composition, Date.now())
+			this.afterStateChange(this.flagSignature() !== flagsBefore, this.compositionSignature() !== compositionBefore)
 		} catch (err) {
 			this.instance.log('debug', `XML inválido: ${err instanceof Error ? err.message : String(err)}`)
 		}
@@ -327,11 +549,27 @@ export class StudioApi {
 			.concat(s.sync.role, s.sync.state, s.auxOutputs.map((o) => `${o.number}${Number(o.active)}`).join(','))
 	}
 
-	/** Variables only send what changed (see StudioInstance.updateVariables); feedbacks are re-checked when a flag changed. */
-	private afterStateChange(flagsChanged: boolean): void {
+	/** What the grid's feedbacks read: the mode, the selection, the column fired last, each layer's clip and switches. */
+	private compositionSignature(): string {
+		const c = this.state.composition
+		if (!c) return ''
+		return [
+			`${Number(c.enabled)}:${c.column}:${c.selectedLayer}:${c.selectedColumn}`,
+			c.columns.map((x) => `${x.number}=${x.name}`).join(','),
+			...c.layers.map(
+				(l) =>
+					`${l.number}=${l.name}:${l.clip}:${Number(l.bypass)}${Number(l.solo)}${Number(l.warning)}:` +
+					l.clips.map((x) => `${x.column}${x.connected ? '*' : ''}`).join(','),
+			),
+		].join('|')
+	}
+
+	/** Variables only send what changed (see StudioInstance.updateVariables); feedbacks are re-checked when what they read changed. */
+	private afterStateChange(flagsChanged: boolean, compositionChanged = false): void {
 		this.instance.updateVariables()
 		if (flagsChanged)
 			this.instance.checkFeedbacks('recording', 'streaming', 'output', 'aux', 'fadeToBlack', 'syncRole', 'connected')
+		if (compositionChanged) this.instance.checkFeedbacks(...COMPOSITION_FEEDBACKS)
 	}
 
 	private clearState(): void {

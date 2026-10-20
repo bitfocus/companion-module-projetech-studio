@@ -1,10 +1,97 @@
-import type { CompanionActionDefinitions } from '@companion-module/base'
+import type {
+	CompanionActionContext,
+	CompanionActionDefinitions,
+	CompanionInputFieldDropdown,
+	CompanionInputFieldNumber,
+	CompanionInputFieldTextInput,
+} from '@companion-module/base'
 import type { StudioInstance } from './main.js'
+import { findLayer } from './composition.js'
 
 /**
  * Actions map to Projetech Studio API functions (same names and parameters as vMix functions, e.g. `Cut`, `Fade`,
  * `PreviewInput`, `SetVolume`). Inputs are numbered in the order of the Projetech Studio list, starting at 1.
+ * The Modo PLume actions (Projetech Studio 1.5) take a layer and a column by number or by name.
  */
+
+/** Modo PLume layer: a number (Camada 1 = the bottom one) or the name shown on the grid; variables allowed. */
+export const layerOption = (label = 'Camada (número, 1 = a de baixo, ou nome)'): CompanionInputFieldTextInput => ({
+	type: 'textinput',
+	id: 'layer',
+	label,
+	default: '1',
+	useVariables: true,
+})
+
+/** Modo PLume column: a number (Coluna 1 = the left one) or the name shown on the grid; variables allowed. */
+export const columnOption = (label = 'Coluna (número ou nome)'): CompanionInputFieldTextInput => ({
+	type: 'textinput',
+	id: 'column',
+	label,
+	default: '1',
+	useVariables: true,
+})
+
+/** What an action's or a feedback's callback context offers to read variables. */
+export type VariableParser = Pick<CompanionActionContext, 'parseVariablesInString'>
+
+/** The text of a layer/column option, with its variables replaced (without a round trip when it has none). */
+export async function optionText(context: VariableParser, value: unknown): Promise<string> {
+	const raw = (typeof value === 'string' ? value : typeof value === 'number' ? String(value) : '').trim()
+	return raw.includes('$(') ? (await context.parseVariablesInString(raw)).trim() : raw
+}
+
+const levelModeOption: CompanionInputFieldDropdown = {
+	type: 'dropdown',
+	id: 'mode',
+	label: 'Modo',
+	default: 'set',
+	choices: [
+		{ id: 'set', label: 'Definir' },
+		{ id: 'add', label: 'Aumentar' },
+		{ id: 'subtract', label: 'Diminuir' },
+	],
+}
+
+const levelValueOption = (fallback = 100): CompanionInputFieldNumber => ({
+	type: 'number',
+	id: 'value',
+	label: 'Valor (0–100)',
+	default: fallback,
+	min: 0,
+	max: 100,
+})
+
+const switchOption: CompanionInputFieldDropdown = {
+	type: 'dropdown',
+	id: 'mode',
+	label: 'Modo',
+	default: 'toggle',
+	choices: [
+		{ id: 'on', label: 'Ligar' },
+		{ id: 'off', label: 'Desligar' },
+		{ id: 'toggle', label: 'Alternar' },
+	],
+}
+
+const directionOption = (next: string, prev: string): CompanionInputFieldDropdown => ({
+	type: 'dropdown',
+	id: 'direction',
+	label: 'Direção',
+	default: 'next',
+	choices: [
+		{ id: 'next', label: next },
+		{ id: 'prev', label: prev },
+	],
+})
+
+/** A level for Value= (0–100): set, or moved from the current one (unknown current value = undefined). */
+export function levelValue(mode: unknown, value: unknown, current: number | undefined): number | undefined {
+	const v = Math.max(0, Math.min(100, Number(value) || 0))
+	if (mode !== 'add' && mode !== 'subtract') return v
+	if (current === undefined) return undefined
+	return Math.max(0, Math.min(100, current + (mode === 'add' ? v : -v)))
+}
 
 /** Input number option; for actions where it is optional, 0 means "the input on preview" (or the program). */
 const inputOption = (label = 'Input (número na lista; 0 = o que está no preview)') => ({
@@ -32,6 +119,17 @@ export function getActions(instance: StudioInstance): CompanionActionDefinitions
 	const api = instance.api
 	/** `Input=n` only when a specific input was chosen; without it the API acts on the preview/program input. */
 	const withInput = (n: unknown): Record<string, number> => (Number(n) > 0 ? { Input: Number(n) } : {})
+	/** A relative level needs the current value from the XML state; without it nothing is sent. */
+	const sendLevel = (fn: string, params: Record<string, string>, level: number | undefined, what: string): void => {
+		if (level === undefined) {
+			instance.log(
+				'warn',
+				`Modo PLume: ${what} não está no estado do Projetech Studio (a grade é da versão 1.5 ou mais nova)`,
+			)
+			return
+		}
+		api.sendFunction(fn, { ...params, Value: level })
+	}
 
 	return {
 		cut: {
@@ -288,6 +386,164 @@ export function getActions(instance: StudioInstance): CompanionActionDefinitions
 			name: 'Sincronia: assumir a transmissão',
 			options: [],
 			callback: async () => api.sendFunction('SyncTakeStream'),
+		},
+		// ---- Modo PLume (the clip grid, Projetech Studio 1.5): ids and option ids are stored in buttons, never rename them.
+		triggerClip: {
+			name: 'Modo PLume: disparar clipe (camada e coluna)',
+			options: [layerOption(), columnOption()],
+			callback: async (ev, ctx) =>
+				api.sendFunction('TriggerClip', {
+					Layer: await optionText(ctx, ev.options.layer),
+					Column: await optionText(ctx, ev.options.column),
+				}),
+		},
+		selectClip: {
+			name: 'Modo PLume: selecionar clipe (não dispara)',
+			options: [layerOption(), columnOption()],
+			callback: async (ev, ctx) =>
+				api.sendFunction('SelectClip', {
+					Layer: await optionText(ctx, ev.options.layer),
+					Column: await optionText(ctx, ev.options.column),
+				}),
+		},
+		triggerColumn: {
+			name: 'Modo PLume: disparar coluna',
+			options: [columnOption()],
+			callback: async (ev, ctx) =>
+				api.sendFunction('TriggerColumn', { Column: await optionText(ctx, ev.options.column) }),
+		},
+		selectColumn: {
+			name: 'Modo PLume: selecionar coluna (não dispara)',
+			options: [columnOption()],
+			callback: async (ev, ctx) =>
+				api.sendFunction('SelectColumn', { Column: await optionText(ctx, ev.options.column) }),
+		},
+		columnStep: {
+			name: 'Modo PLume: disparar a próxima / a anterior coluna',
+			options: [directionOption('Próxima coluna', 'Coluna anterior')],
+			callback: async (ev) => api.sendFunction(ev.options.direction === 'prev' ? 'PreviousColumn' : 'NextColumn'),
+		},
+		layerClipStep: {
+			name: 'Modo PLume: próximo / anterior clipe da camada',
+			options: [layerOption(), directionOption('Próximo clipe', 'Clipe anterior')],
+			callback: async (ev, ctx) =>
+				api.sendFunction(ev.options.direction === 'prev' ? 'LayerPreviousClip' : 'LayerNextClip', {
+					Layer: await optionText(ctx, ev.options.layer),
+				}),
+		},
+		ejectLayer: {
+			name: 'Modo PLume: ejetar camada',
+			options: [layerOption()],
+			callback: async (ev, ctx) => api.sendFunction('EjectLayer', { Layer: await optionText(ctx, ev.options.layer) }),
+		},
+		ejectAll: {
+			name: 'Modo PLume: ejetar tudo',
+			options: [],
+			callback: async () => api.sendFunction('EjectAll'),
+		},
+		layerOpacity: {
+			name: 'Modo PLume: opacidade da camada',
+			options: [layerOption(), levelModeOption, levelValueOption()],
+			callback: async (ev, ctx) => {
+				const layer = await optionText(ctx, ev.options.layer)
+				const current = findLayer(api.state.composition, layer)?.opacity
+				sendLevel(
+					'SetLayerOpacity',
+					{ Layer: layer },
+					levelValue(ev.options.mode, ev.options.value, current),
+					`a camada ${layer}`,
+				)
+			},
+		},
+		layerVolume: {
+			name: 'Modo PLume: volume da camada',
+			options: [layerOption(), levelModeOption, levelValueOption()],
+			callback: async (ev, ctx) => {
+				const layer = await optionText(ctx, ev.options.layer)
+				const current = findLayer(api.state.composition, layer)?.volume
+				sendLevel(
+					'SetLayerVolume',
+					{ Layer: layer },
+					levelValue(ev.options.mode, ev.options.value, current),
+					`a camada ${layer}`,
+				)
+			},
+		},
+		compositionMaster: {
+			name: 'Modo PLume: master da composição (vídeo)',
+			options: [levelModeOption, levelValueOption()],
+			callback: async (ev) =>
+				sendLevel(
+					'SetCompositionMaster',
+					{},
+					levelValue(ev.options.mode, ev.options.value, api.state.composition?.master),
+					'o master da composição',
+				),
+		},
+		layerBypass: {
+			name: 'Modo PLume: bypass da camada (corta vídeo e áudio)',
+			options: [layerOption(), switchOption],
+			callback: async (ev, ctx) =>
+				api.sendFunction(
+					ev.options.mode === 'on' ? 'LayerBypassOn' : ev.options.mode === 'off' ? 'LayerBypassOff' : 'LayerBypass',
+					{ Layer: await optionText(ctx, ev.options.layer) },
+				),
+		},
+		layerSolo: {
+			name: 'Modo PLume: solo da camada',
+			options: [layerOption(), switchOption],
+			callback: async (ev, ctx) =>
+				api.sendFunction(
+					ev.options.mode === 'on' ? 'LayerSoloOn' : ev.options.mode === 'off' ? 'LayerSoloOff' : 'LayerSolo',
+					{ Layer: await optionText(ctx, ev.options.layer) },
+				),
+		},
+		layerTransition: {
+			name: 'Modo PLume: transição da camada',
+			options: [
+				layerOption(),
+				{ type: 'number', id: 'ms', label: 'Duração (ms, 0 = corte)', default: 500, min: 0, max: 10000 },
+				{
+					type: 'dropdown',
+					id: 'type',
+					label: 'Tipo',
+					default: 'Fade',
+					choices: [
+						{ id: 'Fade', label: 'Fade' },
+						{ id: 'Cut', label: 'Corte' },
+					],
+				},
+			],
+			callback: async (ev, ctx) =>
+				api.sendFunction('SetLayerTransition', {
+					Layer: await optionText(ctx, ev.options.layer),
+					Value: Math.max(0, Math.min(10000, Math.round(Number(ev.options.ms) || 0))),
+					Type: ev.options.type === 'Cut' ? 'Cut' : 'Fade',
+				}),
+		},
+		layerBlend: {
+			name: 'Modo PLume: blend da camada',
+			options: [
+				layerOption(),
+				{
+					type: 'dropdown',
+					id: 'blend',
+					label: 'Blend',
+					default: 'Alpha',
+					choices: [
+						{ id: 'Alpha', label: 'Normal' },
+						{ id: 'Add', label: 'Somar' },
+						{ id: 'Screen', label: 'Tela' },
+						{ id: 'Multiply', label: 'Multiplicar' },
+						{ id: 'LumaKey', label: 'Luma key' },
+					],
+				},
+			],
+			callback: async (ev, ctx) =>
+				api.sendFunction('SetLayerBlend', {
+					Layer: await optionText(ctx, ev.options.layer),
+					Value: String(ev.options.blend ?? 'Alpha'),
+				}),
 		},
 		// Escape hatch for API functions without a dedicated action; the text is sent as typed.
 		raw: {
