@@ -5,10 +5,10 @@ import { clipAt, clipOnAir, layerClock, mmss } from './composition.js'
 /** Variables `input_1_name` … `input_32_name` are defined for the first 32 inputs of the list. */
 const MAX_INPUTS = 32
 
-/** Modo PLume: `layer_N_…` for the layers 1–16 (the grid's maximum). */
+/** Modo ProLume: `layer_N_…` for the layers 1–16 (the grid's maximum). */
 export const MAX_LAYERS = 16
 
-/** Modo PLume: `clip_L_C_name` and `column_C_name` for the first 8 layers and columns (the presets' grid). */
+/** Modo ProLume: `clip_L_C_name` and `column_C_name` for the first 8 layers and columns (the presets' grid). */
 export const GRID_SIZE = 8
 
 const LAYER_FIELDS: [string, string][] = [
@@ -38,21 +38,21 @@ export function getVariableDefinitions(): CompanionVariableDefinition[] {
 	]
 	for (let i = 1; i <= MAX_INPUTS; i++) defs.push({ variableId: `input_${i}_name`, name: `Nome do input ${i}` })
 	defs.push(
-		{ variableId: 'composition_mode', name: 'Modo PLume ligado (1/0)' },
-		{ variableId: 'composition_master', name: 'Modo PLume: master da composição (0–100)' },
-		{ variableId: 'column_current', name: 'Modo PLume: número da coluna disparada por último' },
-		{ variableId: 'column_current_name', name: 'Modo PLume: nome da coluna disparada por último' },
-		{ variableId: 'column_selected', name: 'Modo PLume: número da coluna selecionada' },
-		{ variableId: 'layer_selected', name: 'Modo PLume: número da camada selecionada' },
+		{ variableId: 'composition_mode', name: 'Modo ProLume ligado (1/0)' },
+		{ variableId: 'composition_master', name: 'Modo ProLume: master da composição (0–100)' },
+		{ variableId: 'column_current', name: 'Modo ProLume: número da coluna disparada por último' },
+		{ variableId: 'column_current_name', name: 'Modo ProLume: nome da coluna disparada por último' },
+		{ variableId: 'column_selected', name: 'Modo ProLume: número da coluna selecionada' },
+		{ variableId: 'layer_selected', name: 'Modo ProLume: número da camada selecionada' },
 	)
 	for (let n = 1; n <= MAX_LAYERS; n++)
 		for (const [field, label] of LAYER_FIELDS)
-			defs.push({ variableId: `layer_${n}_${field}`, name: `Modo PLume: camada ${n}, ${label}` })
+			defs.push({ variableId: `layer_${n}_${field}`, name: `Modo ProLume: camada ${n}, ${label}` })
 	for (let l = 1; l <= GRID_SIZE; l++)
 		for (let c = 1; c <= GRID_SIZE; c++)
-			defs.push({ variableId: `clip_${l}_${c}_name`, name: `Modo PLume: nome do clipe da camada ${l}, coluna ${c}` })
+			defs.push({ variableId: `clip_${l}_${c}_name`, name: `Modo ProLume: nome do clipe da camada ${l}, coluna ${c}` })
 	for (let c = 1; c <= GRID_SIZE; c++)
-		defs.push({ variableId: `column_${c}_name`, name: `Modo PLume: nome da coluna ${c}` })
+		defs.push({ variableId: `column_${c}_name`, name: `Modo ProLume: nome da coluna ${c}` })
 	return defs
 }
 

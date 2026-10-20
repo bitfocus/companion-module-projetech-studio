@@ -25,7 +25,7 @@ export interface AuxOutputState {
 	mode: string
 }
 
-/** A column of the Modo PLume grid (`<column>` of `<composition>`), Coluna 1 = the left one. */
+/** A column of the Modo ProLume grid (`<column>` of `<composition>`), Coluna 1 = the left one. */
 export interface CompositionColumn {
 	number: number
 	key: string
@@ -84,7 +84,7 @@ export interface CompositionLayer {
 	clips: CompositionClip[]
 }
 
-/** The Modo PLume grid (`<composition>`, Projetech Studio 1.5 or newer, whenever the project has a grid). */
+/** The Modo ProLume grid (`<composition>`, Projetech Studio 1.5 or newer, whenever the project has a grid). */
 export interface CompositionState {
 	/** The mode is on (the grid drives the program). */
 	enabled: boolean
@@ -121,7 +121,7 @@ export interface StudioState {
 	connected: boolean
 	/** Master/slave link of this Projetech Studio with another one (the `<sync>` element of the XML state). */
 	sync: SyncState
-	/** The Modo PLume grid; null when the project has none or Projetech Studio is older than 1.5. */
+	/** The Modo ProLume grid; null when the project has none or Projetech Studio is older than 1.5. */
 	composition: CompositionState | null
 }
 
@@ -153,7 +153,7 @@ const ACTIVATOR_FLAGS: Record<string, Flag> = {
 	FadeToBlack: 'fadeToBlack',
 }
 
-/** The feedbacks that read the Modo PLume grid: re-checked when the grid's signature changes. */
+/** The feedbacks that read the Modo ProLume grid: re-checked when the grid's signature changes. */
 export const COMPOSITION_FEEDBACKS = [
 	'clipActive',
 	'clipSelected',
@@ -230,7 +230,7 @@ const attrBool = (n: XmlNode | undefined, name: string): boolean => attr(n, name
 /** The text of a text-only element (`<active>3</active>`), or of an element with attributes and text (`<input …>Name</input>`). */
 const text = (v: unknown): string => (typeof v === 'object' && v !== null ? asText((v as XmlNode).text) : asText(v))
 
-/** The `<composition>` element (the Modo PLume grid) as state; null when it is absent. */
+/** The `<composition>` element (the Modo ProLume grid) as state; null when it is absent. */
 export function parseComposition(raw: unknown, readAt: number): CompositionState | null {
 	const c = nodes(raw)[0]
 	if (!c) return null

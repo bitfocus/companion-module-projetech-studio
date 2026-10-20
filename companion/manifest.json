@@ -3,7 +3,7 @@
 	"id": "projetech-studio",
 	"name": "projetech-studio",
 	"shortname": "Projetech Studio",
-	"description": "Control Projetech Studio, the event video switcher and player by Projetech Eventos: cut/fade, preview, playback, overlays, audio, recording, streaming, outputs and timer, with per-input tally, and the Modo PLume clip grid (clips, columns and layers, with per-layer countdowns).",
+	"description": "Control Projetech Studio, the event video switcher and player by Projetech Eventos: cut/fade, preview, playback, overlays, audio, recording, streaming, outputs and timer, with per-input tally, and the Modo ProLume clip grid (clips, columns and layers, with per-layer countdowns).",
 	"version": "0.0.0",
 	"license": "MIT",
 	"repository": "git+https://github.com/bitfocus/companion-module-projetech-studio.git",
@@ -36,6 +36,6 @@
 		"pmix",
 		"clips",
 		"grid",
-		"plume"
+		"prolume"
 	]
 }

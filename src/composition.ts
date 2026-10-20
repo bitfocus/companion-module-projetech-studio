@@ -1,7 +1,7 @@
 import type { CompositionClip, CompositionColumn, CompositionLayer, CompositionState } from './api.js'
 
 /**
- * The Modo PLume grid as actions, feedbacks and variables read it. Layers and columns are found the way Projetech
+ * The Modo ProLume grid as actions, feedbacks and variables read it. Layers and columns are found the way Projetech
  * Studio finds them in a FUNCTION: a number first (Camada 1 = the bottom layer, Coluna 1 = the left column), then the
  * key, then the name shown on the grid, whatever the case.
  */

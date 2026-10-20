@@ -11,10 +11,10 @@ import { findLayer } from './composition.js'
 /**
  * Actions map to Projetech Studio API functions (same names and parameters as vMix functions, e.g. `Cut`, `Fade`,
  * `PreviewInput`, `SetVolume`). Inputs are numbered in the order of the Projetech Studio list, starting at 1.
- * The Modo PLume actions (Projetech Studio 1.5) take a layer and a column by number or by name.
+ * The Modo ProLume actions (Projetech Studio 1.5) take a layer and a column by number or by name.
  */
 
-/** Modo PLume layer: a number (Camada 1 = the bottom one) or the name shown on the grid; variables allowed. */
+/** Modo ProLume layer: a number (Camada 1 = the bottom one) or the name shown on the grid; variables allowed. */
 export const layerOption = (label = 'Camada (número, 1 = a de baixo, ou nome)'): CompanionInputFieldTextInput => ({
 	type: 'textinput',
 	id: 'layer',
@@ -23,7 +23,7 @@ export const layerOption = (label = 'Camada (número, 1 = a de baixo, ou nome)')
 	useVariables: true,
 })
 
-/** Modo PLume column: a number (Coluna 1 = the left one) or the name shown on the grid; variables allowed. */
+/** Modo ProLume column: a number (Coluna 1 = the left one) or the name shown on the grid; variables allowed. */
 export const columnOption = (label = 'Coluna (número ou nome)'): CompanionInputFieldTextInput => ({
 	type: 'textinput',
 	id: 'column',
@@ -124,7 +124,7 @@ export function getActions(instance: StudioInstance): CompanionActionDefinitions
 		if (level === undefined) {
 			instance.log(
 				'warn',
-				`Modo PLume: ${what} não está no estado do Projetech Studio (a grade é da versão 1.5 ou mais nova)`,
+				`Modo ProLume: ${what} não está no estado do Projetech Studio (a grade é da versão 1.5 ou mais nova)`,
 			)
 			return
 		}
@@ -387,9 +387,9 @@ export function getActions(instance: StudioInstance): CompanionActionDefinitions
 			options: [],
 			callback: async () => api.sendFunction('SyncTakeStream'),
 		},
-		// ---- Modo PLume (the clip grid, Projetech Studio 1.5): ids and option ids are stored in buttons, never rename them.
+		// ---- Modo ProLume (the clip grid, Projetech Studio 1.5): ids and option ids are stored in buttons, never rename them.
 		triggerClip: {
-			name: 'Modo PLume: disparar clipe (camada e coluna)',
+			name: 'Modo ProLume: disparar clipe (camada e coluna)',
 			options: [layerOption(), columnOption()],
 			callback: async (ev, ctx) =>
 				api.sendFunction('TriggerClip', {
@@ -398,7 +398,7 @@ export function getActions(instance: StudioInstance): CompanionActionDefinitions
 				}),
 		},
 		selectClip: {
-			name: 'Modo PLume: selecionar clipe (não dispara)',
+			name: 'Modo ProLume: selecionar clipe (não dispara)',
 			options: [layerOption(), columnOption()],
 			callback: async (ev, ctx) =>
 				api.sendFunction('SelectClip', {
@@ -407,24 +407,24 @@ export function getActions(instance: StudioInstance): CompanionActionDefinitions
 				}),
 		},
 		triggerColumn: {
-			name: 'Modo PLume: disparar coluna',
+			name: 'Modo ProLume: disparar coluna',
 			options: [columnOption()],
 			callback: async (ev, ctx) =>
 				api.sendFunction('TriggerColumn', { Column: await optionText(ctx, ev.options.column) }),
 		},
 		selectColumn: {
-			name: 'Modo PLume: selecionar coluna (não dispara)',
+			name: 'Modo ProLume: selecionar coluna (não dispara)',
 			options: [columnOption()],
 			callback: async (ev, ctx) =>
 				api.sendFunction('SelectColumn', { Column: await optionText(ctx, ev.options.column) }),
 		},
 		columnStep: {
-			name: 'Modo PLume: disparar a próxima / a anterior coluna',
+			name: 'Modo ProLume: disparar a próxima / a anterior coluna',
 			options: [directionOption('Próxima coluna', 'Coluna anterior')],
 			callback: async (ev) => api.sendFunction(ev.options.direction === 'prev' ? 'PreviousColumn' : 'NextColumn'),
 		},
 		layerClipStep: {
-			name: 'Modo PLume: próximo / anterior clipe da camada',
+			name: 'Modo ProLume: próximo / anterior clipe da camada',
 			options: [layerOption(), directionOption('Próximo clipe', 'Clipe anterior')],
 			callback: async (ev, ctx) =>
 				api.sendFunction(ev.options.direction === 'prev' ? 'LayerPreviousClip' : 'LayerNextClip', {
@@ -432,17 +432,17 @@ export function getActions(instance: StudioInstance): CompanionActionDefinitions
 				}),
 		},
 		ejectLayer: {
-			name: 'Modo PLume: ejetar camada',
+			name: 'Modo ProLume: ejetar camada',
 			options: [layerOption()],
 			callback: async (ev, ctx) => api.sendFunction('EjectLayer', { Layer: await optionText(ctx, ev.options.layer) }),
 		},
 		ejectAll: {
-			name: 'Modo PLume: ejetar tudo',
+			name: 'Modo ProLume: ejetar tudo',
 			options: [],
 			callback: async () => api.sendFunction('EjectAll'),
 		},
 		layerOpacity: {
-			name: 'Modo PLume: opacidade da camada',
+			name: 'Modo ProLume: opacidade da camada',
 			options: [layerOption(), levelModeOption, levelValueOption()],
 			callback: async (ev, ctx) => {
 				const layer = await optionText(ctx, ev.options.layer)
@@ -456,7 +456,7 @@ export function getActions(instance: StudioInstance): CompanionActionDefinitions
 			},
 		},
 		layerVolume: {
-			name: 'Modo PLume: volume da camada',
+			name: 'Modo ProLume: volume da camada',
 			options: [layerOption(), levelModeOption, levelValueOption()],
 			callback: async (ev, ctx) => {
 				const layer = await optionText(ctx, ev.options.layer)
@@ -470,7 +470,7 @@ export function getActions(instance: StudioInstance): CompanionActionDefinitions
 			},
 		},
 		compositionMaster: {
-			name: 'Modo PLume: master da composição (vídeo)',
+			name: 'Modo ProLume: master da composição (vídeo)',
 			options: [levelModeOption, levelValueOption()],
 			callback: async (ev) =>
 				sendLevel(
@@ -481,7 +481,7 @@ export function getActions(instance: StudioInstance): CompanionActionDefinitions
 				),
 		},
 		layerBypass: {
-			name: 'Modo PLume: bypass da camada (corta vídeo e áudio)',
+			name: 'Modo ProLume: bypass da camada (corta vídeo e áudio)',
 			options: [layerOption(), switchOption],
 			callback: async (ev, ctx) =>
 				api.sendFunction(
@@ -490,7 +490,7 @@ export function getActions(instance: StudioInstance): CompanionActionDefinitions
 				),
 		},
 		layerSolo: {
-			name: 'Modo PLume: solo da camada',
+			name: 'Modo ProLume: solo da camada',
 			options: [layerOption(), switchOption],
 			callback: async (ev, ctx) =>
 				api.sendFunction(
@@ -499,7 +499,7 @@ export function getActions(instance: StudioInstance): CompanionActionDefinitions
 				),
 		},
 		layerTransition: {
-			name: 'Modo PLume: transição da camada',
+			name: 'Modo ProLume: transição da camada',
 			options: [
 				layerOption(),
 				{ type: 'number', id: 'ms', label: 'Duração (ms, 0 = corte)', default: 500, min: 0, max: 10000 },
@@ -522,7 +522,7 @@ export function getActions(instance: StudioInstance): CompanionActionDefinitions
 				}),
 		},
 		layerBlend: {
-			name: 'Modo PLume: blend da camada',
+			name: 'Modo ProLume: blend da camada',
 			options: [
 				layerOption(),
 				{

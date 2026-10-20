@@ -23,7 +23,7 @@ export const DIM_TEXT = combineRgb(90, 94, 104)
 
 /**
  * Boolean feedbacks. Tally comes from the pushed vMix tally string (one digit per input: 0 off, 1 program, 2 preview);
- * the other flags come from activator pushes and the polled XML state, the Modo PLume grid included.
+ * the other flags come from activator pushes and the polled XML state, the Modo ProLume grid included.
  */
 export function getFeedbacks(instance: StudioInstance): CompanionFeedbackDefinitions {
 	const api = instance.api
@@ -138,10 +138,10 @@ export function getFeedbacks(instance: StudioInstance): CompanionFeedbackDefinit
 			options: [],
 			callback: () => api.state.connected,
 		},
-		// ---- Modo PLume (the clip grid, Projetech Studio 1.5): ids and option ids are stored in buttons, never rename them.
+		// ---- Modo ProLume (the clip grid, Projetech Studio 1.5): ids and option ids are stored in buttons, never rename them.
 		clipActive: {
 			type: 'boolean',
-			name: 'Modo PLume: clipe no ar',
+			name: 'Modo ProLume: clipe no ar',
 			description: 'O clipe da célula (camada × coluna) está no ar',
 			defaultStyle: { bgcolor: GREEN, color: WHITE },
 			options: [layerOption(), columnOption()],
@@ -149,7 +149,7 @@ export function getFeedbacks(instance: StudioInstance): CompanionFeedbackDefinit
 		},
 		clipSelected: {
 			type: 'boolean',
-			name: 'Modo PLume: célula selecionada',
+			name: 'Modo ProLume: célula selecionada',
 			description: 'A célula (camada × coluna) é a selecionada (CLIPE SELECIONADO)',
 			defaultStyle: { bgcolor: YELLOW, color: BLACK },
 			options: [layerOption(), columnOption()],
@@ -161,7 +161,7 @@ export function getFeedbacks(instance: StudioInstance): CompanionFeedbackDefinit
 		},
 		clipEmpty: {
 			type: 'boolean',
-			name: 'Modo PLume: célula vazia',
+			name: 'Modo ProLume: célula vazia',
 			description: 'A célula (camada × coluna) não tem clipe (ou não existe na grade)',
 			defaultStyle: { bgcolor: DIM_BG, color: DIM_TEXT },
 			options: [layerOption(), columnOption()],
@@ -169,7 +169,7 @@ export function getFeedbacks(instance: StudioInstance): CompanionFeedbackDefinit
 		},
 		columnActive: {
 			type: 'boolean',
-			name: 'Modo PLume: coluna disparada',
+			name: 'Modo ProLume: coluna disparada',
 			description: 'A coluna é a disparada por último',
 			defaultStyle: { bgcolor: GREEN, color: WHITE },
 			options: [columnOption()],
@@ -180,7 +180,7 @@ export function getFeedbacks(instance: StudioInstance): CompanionFeedbackDefinit
 		},
 		layerBypass: {
 			type: 'boolean',
-			name: 'Modo PLume: camada em bypass',
+			name: 'Modo ProLume: camada em bypass',
 			description: 'A camada está em bypass (fora do ar, vídeo e áudio)',
 			defaultStyle: { bgcolor: ORANGE, color: BLACK },
 			options: [layerOption()],
@@ -188,7 +188,7 @@ export function getFeedbacks(instance: StudioInstance): CompanionFeedbackDefinit
 		},
 		layerSolo: {
 			type: 'boolean',
-			name: 'Modo PLume: camada em solo',
+			name: 'Modo ProLume: camada em solo',
 			description: 'A camada está em solo (só as camadas em solo são vistas e ouvidas)',
 			defaultStyle: { bgcolor: CYAN, color: BLACK },
 			options: [layerOption()],
@@ -196,7 +196,7 @@ export function getFeedbacks(instance: StudioInstance): CompanionFeedbackDefinit
 		},
 		layerEnding: {
 			type: 'boolean',
-			name: 'Modo PLume: clipe da camada terminando',
+			name: 'Modo ProLume: clipe da camada terminando',
 			description: 'O tempo restante do clipe da camada está no aviso (vermelho na grade)',
 			defaultStyle: { bgcolor: RED, color: WHITE },
 			options: [layerOption()],
@@ -204,8 +204,8 @@ export function getFeedbacks(instance: StudioInstance): CompanionFeedbackDefinit
 		},
 		compositionMode: {
 			type: 'boolean',
-			name: 'Modo PLume ligado',
-			description: 'O Modo PLume está ligado neste Projetech Studio (a grade comanda o programa)',
+			name: 'Modo ProLume ligado',
+			description: 'O Modo ProLume está ligado neste Projetech Studio (a grade comanda o programa)',
 			defaultStyle: { bgcolor: VIOLET, color: WHITE },
 			options: [],
 			callback: () => api.state.composition?.enabled ?? false,

@@ -33,7 +33,7 @@ const xml = [
 	'    <auxOutput number="3" active="True" mode="Program" />',
 	'  </auxOutputs>',
 	'  <sync role="Slave" state="Ready" connected="True" partner="PC-PALCO" partnerAddress="192.168.0.10:48761" term="3" promoted="False" partnerStreaming="True" />',
-	// Modo PLume (1.5): the attributes column= and clip= share their names with child elements.
+	// Modo ProLume (1.5): the attributes column= and clip= share their names with child elements.
 	'  <composition enabled="True" master="80" column="2" selectedLayer="1" selectedColumn="1">',
 	'    <column number="1" key="c1" name="Abertura" />',
 	'    <column number="2" key="c2" name="Encerramento &amp; créditos" />',
@@ -181,7 +181,7 @@ test('follows activator pushes', async () => {
 	assert.equal(api.state.recording, true)
 })
 
-test('reads the Modo PLume grid (a layer with one clip, a layer with two)', () => {
+test('reads the Modo ProLume grid (a layer with one clip, a layer with two)', () => {
 	const c = api.state.composition
 	assert.ok(c)
 	assert.deepEqual([c.enabled, c.master, c.column, c.selectedLayer, c.selectedColumn], [true, 80, 2, 1, 1])
@@ -316,14 +316,17 @@ test('the presets use only actions, feedbacks and options that exist', () => {
 			for (const option of Object.keys(f.options)) assert.ok(ids.includes(option), `${id}: ${f.feedbackId}.${option}`)
 		}
 	}
-	const plume = Object.values(presets).filter((p) => p.category.startsWith('Modo PLume'))
-	assert.equal(plume.length, 64 + 8 + 3 + 8 * 4)
+	const prolume = Object.values(presets).filter((p) => p.category.startsWith('Modo ProLume'))
+	assert.equal(prolume.length, 64 + 8 + 3 + 8 * 4)
 	assert.deepEqual(
-		[...new Set(plume.map((p) => p.category))],
-		['Modo PLume: clipes', 'Modo PLume: colunas', 'Modo PLume: camadas'],
+		[...new Set(prolume.map((p) => p.category))],
+		['Modo ProLume: clipes', 'Modo ProLume: colunas', 'Modo ProLume: camadas'],
 	)
-	assert.equal(presets.plume_clip_8_1.steps[0].down[0].actionId, 'triggerClip') // the top layer first, as on the grid
-	assert.equal(Object.keys(presets).indexOf('plume_clip_8_1') < Object.keys(presets).indexOf('plume_clip_1_1'), true)
+	assert.equal(presets.prolume_clip_8_1.steps[0].down[0].actionId, 'triggerClip') // the top layer first, as on the grid
+	assert.equal(
+		Object.keys(presets).indexOf('prolume_clip_8_1') < Object.keys(presets).indexOf('prolume_clip_1_1'),
+		true,
+	)
 })
 
 test('the grid feedbacks read the state (numbers, names and variables)', async () => {

@@ -2,16 +2,16 @@ import { combineRgb, type CompanionOptionValues, type CompanionPresetDefinitions
 import { RED, GREEN, WHITE, BLACK, YELLOW, ORANGE, CYAN, DIM_BG, DIM_TEXT } from './feedbacks.js'
 import { GRID_SIZE } from './variables.js'
 
-/** Categories of the Modo PLume presets (a fixed 8 × 8 grid: buttons of cells that do not exist stay dim). */
-export const PLUME_CLIPS = 'Modo PLume: clipes'
-export const PLUME_COLUMNS = 'Modo PLume: colunas'
-export const PLUME_LAYERS = 'Modo PLume: camadas'
+/** Categories of the Modo ProLume presets (a fixed 8 × 8 grid: buttons of cells that do not exist stay dim). */
+export const PROLUME_CLIPS = 'Modo ProLume: clipes'
+export const PROLUME_COLUMNS = 'Modo ProLume: colunas'
+export const PROLUME_LAYERS = 'Modo ProLume: camadas'
 
 const BUTTON = combineRgb(40, 44, 56)
 
 /**
  * Ready-made buttons: one per input (1–16) that loads it on preview and lights green on preview and red on air, plus
- * the switcher controls, and the Modo PLume's clips, columns and layers. Companion rewrites the `$(projetech-studio:…)`
+ * the switcher controls, and the Modo ProLume's clips, columns and layers. Companion rewrites the `$(projetech-studio:…)`
  * prefix to the connection's label.
  */
 export function getPresets(): CompanionPresetDefinitions {
@@ -108,22 +108,22 @@ export function getPresets(): CompanionPresetDefinitions {
 		feedbacks: [{ feedbackId: 'streaming', options: {}, style: { bgcolor: RED, color: WHITE } }],
 	}
 
-	addPlumePresets(presets)
+	addProLumePresets(presets)
 	return presets
 }
 
 /**
- * Modo PLume (Projetech Studio 1.5): the 8 × 8 cells (the top layer first, as on the grid; dim when empty, yellow when
+ * Modo ProLume (Projetech Studio 1.5): the 8 × 8 cells (the top layer first, as on the grid; dim when empty, yellow when
  * selected, green on air), the columns with NEXT / PREV / EJECT ALL, and per layer X (eject), B (bypass), S (solo) and its
  * countdown (red when the clip is ending).
  */
-function addPlumePresets(presets: CompanionPresetDefinitions): void {
+function addProLumePresets(presets: CompanionPresetDefinitions): void {
 	for (let l = GRID_SIZE; l >= 1; l--) {
 		for (let c = 1; c <= GRID_SIZE; c++) {
 			const cell = { layer: String(l), column: String(c) }
-			presets[`plume_clip_${l}_${c}`] = {
+			presets[`prolume_clip_${l}_${c}`] = {
 				type: 'button',
-				category: PLUME_CLIPS,
+				category: PROLUME_CLIPS,
 				name: `Clipe: camada ${l}, coluna ${c}`,
 				style: {
 					text: `$(projetech-studio:clip_${l}_${c}_name)\\nC${c}·L${l}`,
@@ -142,9 +142,9 @@ function addPlumePresets(presets: CompanionPresetDefinitions): void {
 	}
 
 	for (let c = 1; c <= GRID_SIZE; c++) {
-		presets[`plume_column_${c}`] = {
+		presets[`prolume_column_${c}`] = {
 			type: 'button',
-			category: PLUME_COLUMNS,
+			category: PROLUME_COLUMNS,
 			name: `Coluna ${c}`,
 			style: { text: `$(projetech-studio:column_${c}_name)\\nCOL ${c}`, size: '14', color: WHITE, bgcolor: BUTTON },
 			steps: [{ down: [{ actionId: 'triggerColumn', options: { column: String(c) } }], up: [] }],
@@ -162,46 +162,46 @@ function addPlumePresets(presets: CompanionPresetDefinitions): void {
 	) => {
 		presets[id] = {
 			type: 'button',
-			category: PLUME_COLUMNS,
+			category: PROLUME_COLUMNS,
 			name: text.replace('\\n', ' '),
 			style: { text, size: '18', color: WHITE, bgcolor },
 			steps: [{ down: [{ actionId, options }], up: [] }],
 			feedbacks: [],
 		}
 	}
-	columnButton('plume_next_column', 'NEXT\\nCOL', 'columnStep', { direction: 'next' })
-	columnButton('plume_prev_column', 'PREV\\nCOL', 'columnStep', { direction: 'prev' })
-	columnButton('plume_eject_all', 'EJECT\\nALL', 'ejectAll', {}, combineRgb(120, 0, 0))
+	columnButton('prolume_next_column', 'NEXT\\nCOL', 'columnStep', { direction: 'next' })
+	columnButton('prolume_prev_column', 'PREV\\nCOL', 'columnStep', { direction: 'prev' })
+	columnButton('prolume_eject_all', 'EJECT\\nALL', 'ejectAll', {}, combineRgb(120, 0, 0))
 
 	for (let n = 1; n <= GRID_SIZE; n++) {
 		const layer = String(n)
-		presets[`plume_layer_${n}_eject`] = {
+		presets[`prolume_layer_${n}_eject`] = {
 			type: 'button',
-			category: PLUME_LAYERS,
+			category: PROLUME_LAYERS,
 			name: `Camada ${n}: ejetar`,
 			style: { text: `X\\nL${n}`, size: '18', color: WHITE, bgcolor: BUTTON },
 			steps: [{ down: [{ actionId: 'ejectLayer', options: { layer } }], up: [] }],
 			feedbacks: [],
 		}
-		presets[`plume_layer_${n}_bypass`] = {
+		presets[`prolume_layer_${n}_bypass`] = {
 			type: 'button',
-			category: PLUME_LAYERS,
+			category: PROLUME_LAYERS,
 			name: `Camada ${n}: bypass`,
 			style: { text: `B\\nL${n}`, size: '18', color: WHITE, bgcolor: BUTTON },
 			steps: [{ down: [{ actionId: 'layerBypass', options: { layer, mode: 'toggle' } }], up: [] }],
 			feedbacks: [{ feedbackId: 'layerBypass', options: { layer }, style: { bgcolor: ORANGE, color: BLACK } }],
 		}
-		presets[`plume_layer_${n}_solo`] = {
+		presets[`prolume_layer_${n}_solo`] = {
 			type: 'button',
-			category: PLUME_LAYERS,
+			category: PROLUME_LAYERS,
 			name: `Camada ${n}: solo`,
 			style: { text: `S\\nL${n}`, size: '18', color: WHITE, bgcolor: BUTTON },
 			steps: [{ down: [{ actionId: 'layerSolo', options: { layer, mode: 'toggle' } }], up: [] }],
 			feedbacks: [{ feedbackId: 'layerSolo', options: { layer }, style: { bgcolor: CYAN, color: BLACK } }],
 		}
-		presets[`plume_layer_${n}_remaining`] = {
+		presets[`prolume_layer_${n}_remaining`] = {
 			type: 'button',
-			category: PLUME_LAYERS,
+			category: PROLUME_LAYERS,
 			name: `Camada ${n}: tempo restante`,
 			style: { text: `L${n}\\n$(projetech-studio:layer_${n}_remaining)`, size: '18', color: WHITE, bgcolor: BUTTON },
 			steps: [{ down: [], up: [] }],
