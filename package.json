@@ -24,7 +24,7 @@
 	},
 	"dependencies": {
 		"@companion-module/base": "~1.12.1",
-		"fast-xml-parser": "^4.5.7"
+		"fast-xml-parser": "^5.7.0"
 	},
 	"devDependencies": {
 		"@companion-module/tools": "^2.8.0",
