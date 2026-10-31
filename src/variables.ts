@@ -5,58 +5,58 @@ import { clipAt, clipOnAir, layerClock, mmss } from './composition.js'
 /** Variables `input_1_name` … `input_32_name` are defined for the first 32 inputs of the list. */
 const MAX_INPUTS = 32
 
-/** Modo ProLume: `layer_N_…` for the layers 1–16 (the grid's maximum). */
+/** ProLume: `layer_N_…` for the layers 1–16 (the grid's maximum). */
 export const MAX_LAYERS = 16
 
-/** Modo ProLume: `clip_L_C_name` and `column_C_name` for the first 8 layers and columns (the presets' grid). */
+/** ProLume: `clip_L_C_name` and `column_C_name` for the first 8 layers and columns (the presets' grid). */
 export const GRID_SIZE = 8
 
 const LAYER_FIELDS: [string, string][] = [
-	['name', 'nome'],
-	['clip_name', 'clipe no ar'],
-	['column', 'coluna do clipe no ar'],
-	['elapsed', 'tempo decorrido do clipe (mm:ss)'],
-	['remaining', 'tempo restante do clipe (mm:ss)'],
-	['remaining_seconds', 'segundos restantes do clipe'],
-	['progress', 'progresso do clipe (0–100)'],
-	['opacity', 'opacidade (0–100)'],
+	['name', 'name'],
+	['clip_name', 'clip on air'],
+	['column', 'column of the clip on air'],
+	['elapsed', 'elapsed time of the clip (mm:ss)'],
+	['remaining', 'remaining time of the clip (mm:ss)'],
+	['remaining_seconds', 'remaining seconds of the clip'],
+	['progress', 'progress of the clip (0–100)'],
+	['opacity', 'opacity (0–100)'],
 ]
 
 export function getVariableDefinitions(): CompanionVariableDefinition[] {
 	const defs: CompanionVariableDefinition[] = [
-		{ variableId: 'active_number', name: 'Número do input no ar' },
-		{ variableId: 'active_name', name: 'Nome do input no ar' },
-		{ variableId: 'preview_number', name: 'Número do input no preview' },
-		{ variableId: 'preview_name', name: 'Nome do input no preview' },
-		{ variableId: 'program_remaining', name: 'Tempo restante do programa (mm:ss)' },
-		{ variableId: 'recording', name: 'Gravando (1/0)' },
-		{ variableId: 'streaming', name: 'Transmitindo (1/0)' },
-		{ variableId: 'connected', name: 'Companion conectado a este Projetech Studio (1/0)' },
-		{ variableId: 'sync_role', name: 'Papel na sincronia master/slave (master, slave, independente)' },
-		{ variableId: 'sync_partner', name: 'Computador parceiro na sincronia' },
-		{ variableId: 'sync_state', name: 'Estado da sincronia (Ready, Syncing, WaitingPartner, DualMaster…)' },
+		{ variableId: 'active_number', name: 'Number of the input on air' },
+		{ variableId: 'active_name', name: 'Name of the input on air' },
+		{ variableId: 'preview_number', name: 'Number of the input on preview' },
+		{ variableId: 'preview_name', name: 'Name of the input on preview' },
+		{ variableId: 'program_remaining', name: 'Remaining time of the program (mm:ss)' },
+		{ variableId: 'recording', name: 'Recording (1/0)' },
+		{ variableId: 'streaming', name: 'Streaming (1/0)' },
+		{ variableId: 'connected', name: 'Companion connected to this Projetech Studio (1/0)' },
+		{ variableId: 'sync_role', name: 'Master/slave role (master, slave, standalone)' },
+		{ variableId: 'sync_partner', name: 'Master/slave partner computer' },
+		{ variableId: 'sync_state', name: 'Master/slave link state (Ready, Syncing, WaitingPartner, DualMaster…)' },
 	]
-	for (let i = 1; i <= MAX_INPUTS; i++) defs.push({ variableId: `input_${i}_name`, name: `Nome do input ${i}` })
+	for (let i = 1; i <= MAX_INPUTS; i++) defs.push({ variableId: `input_${i}_name`, name: `Name of input ${i}` })
 	defs.push(
-		{ variableId: 'composition_mode', name: 'Modo ProLume ligado (1/0)' },
-		{ variableId: 'composition_master', name: 'Modo ProLume: master da composição (0–100)' },
-		{ variableId: 'column_current', name: 'Modo ProLume: número da coluna disparada por último' },
-		{ variableId: 'column_current_name', name: 'Modo ProLume: nome da coluna disparada por último' },
-		{ variableId: 'column_selected', name: 'Modo ProLume: número da coluna selecionada' },
-		{ variableId: 'layer_selected', name: 'Modo ProLume: número da camada selecionada' },
+		{ variableId: 'composition_mode', name: 'ProLume mode on (1/0)' },
+		{ variableId: 'composition_master', name: 'ProLume: composition master (0–100)' },
+		{ variableId: 'column_current', name: 'ProLume: number of the column fired last' },
+		{ variableId: 'column_current_name', name: 'ProLume: name of the column fired last' },
+		{ variableId: 'column_selected', name: 'ProLume: number of the selected column' },
+		{ variableId: 'layer_selected', name: 'ProLume: number of the selected layer' },
 	)
 	for (let n = 1; n <= MAX_LAYERS; n++)
 		for (const [field, label] of LAYER_FIELDS)
-			defs.push({ variableId: `layer_${n}_${field}`, name: `Modo ProLume: camada ${n}, ${label}` })
+			defs.push({ variableId: `layer_${n}_${field}`, name: `ProLume: layer ${n}, ${label}` })
 	for (let l = 1; l <= GRID_SIZE; l++)
 		for (let c = 1; c <= GRID_SIZE; c++)
-			defs.push({ variableId: `clip_${l}_${c}_name`, name: `Modo ProLume: nome do clipe da camada ${l}, coluna ${c}` })
+			defs.push({ variableId: `clip_${l}_${c}_name`, name: `ProLume: name of the clip in layer ${l}, column ${c}` })
 	for (let c = 1; c <= GRID_SIZE; c++)
-		defs.push({ variableId: `column_${c}_name`, name: `Modo ProLume: nome da coluna ${c}` })
+		defs.push({ variableId: `column_${c}_name`, name: `ProLume: name of column ${c}` })
 	return defs
 }
 
-const SYNC_ROLE_TEXT = { master: 'master', slave: 'slave', standalone: 'independente' } as const
+const SYNC_ROLE_TEXT = { master: 'master', slave: 'slave', standalone: 'standalone' } as const
 
 /**
  * Values computed from the current state; StudioInstance.updateVariables sends only the ones that changed. The layers'

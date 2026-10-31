@@ -2,16 +2,16 @@ import { combineRgb, type CompanionOptionValues, type CompanionPresetDefinitions
 import { RED, GREEN, WHITE, BLACK, YELLOW, ORANGE, CYAN, DIM_BG, DIM_TEXT } from './feedbacks.js'
 import { GRID_SIZE } from './variables.js'
 
-/** Categories of the Modo ProLume presets (a fixed 8 × 8 grid: buttons of cells that do not exist stay dim). */
-export const PROLUME_CLIPS = 'Modo ProLume: clipes'
-export const PROLUME_COLUMNS = 'Modo ProLume: colunas'
-export const PROLUME_LAYERS = 'Modo ProLume: camadas'
+/** Categories of the ProLume presets (a fixed 8 × 8 grid: buttons of cells that do not exist stay dim). */
+export const PROLUME_CLIPS = 'ProLume: clips'
+export const PROLUME_COLUMNS = 'ProLume: columns'
+export const PROLUME_LAYERS = 'ProLume: layers'
 
 const BUTTON = combineRgb(40, 44, 56)
 
 /**
  * Ready-made buttons: one per input (1–16) that loads it on preview and lights green on preview and red on air, plus
- * the switcher controls, and the Modo ProLume's clips, columns and layers. Companion rewrites the `$(projetech-studio:…)`
+ * the switcher controls, and the ProLume clips, columns and layers. Companion rewrites the `$(projetech-studio:…)`
  * prefix to the connection's label.
  */
 export function getPresets(): CompanionPresetDefinitions {
@@ -61,14 +61,14 @@ export function getPresets(): CompanionPresetDefinitions {
 	simple('ftb', 'FTB', 'fadeToBlack', {}, 'fadeToBlack')
 	simple('rec', 'REC', 'recording', { cmd: 'StartStopRecording' }, 'recording')
 	simple('stream', 'STREAM', 'streaming', { cmd: 'StartStopStreaming', slot: 0 }, 'streaming')
-	simple('output', 'SAÍDA\\nLED', 'output', { cmd: 'Fullscreen' }, 'output')
-	// One button per auxiliary output; Saída 2 keeps its preset id.
+	simple('output', 'LED\\nOUT', 'output', { cmd: 'Fullscreen' }, 'output')
+	// One button per auxiliary output; output 2 keeps its preset id.
 	for (const n of [2, 3, 4, 5]) {
 		presets[n === 2 ? 'aux' : `aux_${n}`] = {
 			type: 'button',
 			category: 'Switcher',
-			name: `SAÍDA ${n}`,
-			style: { text: `SAÍDA ${n}`, size: '18', color: WHITE, bgcolor: combineRgb(40, 44, 56) },
+			name: `Output ${n}`,
+			style: { text: `OUT ${n}`, size: '18', color: WHITE, bgcolor: combineRgb(40, 44, 56) },
 			steps: [{ down: [{ actionId: 'aux', options: { output: n, cmd: 'StartStopExternal' } }], up: [] }],
 			feedbacks: [{ feedbackId: 'aux', options: { output: n }, style: { bgcolor: RED, color: WHITE } }],
 		}
@@ -77,8 +77,8 @@ export function getPresets(): CompanionPresetDefinitions {
 	// Master/slave link: the role of this computer (green MASTER, blue SLAVE) and the two takeovers.
 	presets['sync_role'] = {
 		type: 'button',
-		category: 'Sincronia',
-		name: 'Papel na sincronia',
+		category: 'Master/slave',
+		name: 'Master/slave role',
 		style: {
 			text: '$(projetech-studio:sync_role)\\n$(projetech-studio:sync_partner)',
 			size: '14',
@@ -93,17 +93,17 @@ export function getPresets(): CompanionPresetDefinitions {
 	}
 	presets['sync_takeover'] = {
 		type: 'button',
-		category: 'Sincronia',
-		name: 'Assumir como master',
-		style: { text: 'ASSUMIR\\nMASTER', size: '14', color: WHITE, bgcolor: combineRgb(120, 80, 0) },
+		category: 'Master/slave',
+		name: 'Take over as master',
+		style: { text: 'TAKE\\nMASTER', size: '14', color: WHITE, bgcolor: combineRgb(120, 80, 0) },
 		steps: [{ down: [{ actionId: 'syncTakeOver', options: {} }], up: [] }],
 		feedbacks: [{ feedbackId: 'syncRole', options: { role: 'master' }, style: { bgcolor: GREEN, color: WHITE } }],
 	}
 	presets['sync_stream'] = {
 		type: 'button',
-		category: 'Sincronia',
-		name: 'Assumir transmissão',
-		style: { text: 'ASSUMIR\\nSTREAM', size: '14', color: WHITE, bgcolor: combineRgb(120, 0, 0) },
+		category: 'Master/slave',
+		name: 'Take the stream',
+		style: { text: 'TAKE\\nSTREAM', size: '14', color: WHITE, bgcolor: combineRgb(120, 0, 0) },
 		steps: [{ down: [{ actionId: 'syncTakeStream', options: {} }], up: [] }],
 		feedbacks: [{ feedbackId: 'streaming', options: {}, style: { bgcolor: RED, color: WHITE } }],
 	}
@@ -113,7 +113,7 @@ export function getPresets(): CompanionPresetDefinitions {
 }
 
 /**
- * Modo ProLume (Projetech Studio 1.5): the 8 × 8 cells (the top layer first, as on the grid; dim when empty, yellow when
+ * ProLume (Projetech Studio 1.5): the 8 × 8 cells (the top layer first, as on the grid; dim when empty, yellow when
  * selected, green on air), the columns with NEXT / PREV / EJECT ALL, and per layer X (eject), B (bypass), S (solo) and its
  * countdown (red when the clip is ending).
  */
@@ -124,7 +124,7 @@ function addProLumePresets(presets: CompanionPresetDefinitions): void {
 			presets[`prolume_clip_${l}_${c}`] = {
 				type: 'button',
 				category: PROLUME_CLIPS,
-				name: `Clipe: camada ${l}, coluna ${c}`,
+				name: `Clip: layer ${l}, column ${c}`,
 				style: {
 					text: `$(projetech-studio:clip_${l}_${c}_name)\\nC${c}·L${l}`,
 					size: '14',
@@ -145,7 +145,7 @@ function addProLumePresets(presets: CompanionPresetDefinitions): void {
 		presets[`prolume_column_${c}`] = {
 			type: 'button',
 			category: PROLUME_COLUMNS,
-			name: `Coluna ${c}`,
+			name: `Column ${c}`,
 			style: { text: `$(projetech-studio:column_${c}_name)\\nCOL ${c}`, size: '14', color: WHITE, bgcolor: BUTTON },
 			steps: [{ down: [{ actionId: 'triggerColumn', options: { column: String(c) } }], up: [] }],
 			feedbacks: [
@@ -178,7 +178,7 @@ function addProLumePresets(presets: CompanionPresetDefinitions): void {
 		presets[`prolume_layer_${n}_eject`] = {
 			type: 'button',
 			category: PROLUME_LAYERS,
-			name: `Camada ${n}: ejetar`,
+			name: `Layer ${n}: eject`,
 			style: { text: `X\\nL${n}`, size: '18', color: WHITE, bgcolor: BUTTON },
 			steps: [{ down: [{ actionId: 'ejectLayer', options: { layer } }], up: [] }],
 			feedbacks: [],
@@ -186,7 +186,7 @@ function addProLumePresets(presets: CompanionPresetDefinitions): void {
 		presets[`prolume_layer_${n}_bypass`] = {
 			type: 'button',
 			category: PROLUME_LAYERS,
-			name: `Camada ${n}: bypass`,
+			name: `Layer ${n}: bypass`,
 			style: { text: `B\\nL${n}`, size: '18', color: WHITE, bgcolor: BUTTON },
 			steps: [{ down: [{ actionId: 'layerBypass', options: { layer, mode: 'toggle' } }], up: [] }],
 			feedbacks: [{ feedbackId: 'layerBypass', options: { layer }, style: { bgcolor: ORANGE, color: BLACK } }],
@@ -194,7 +194,7 @@ function addProLumePresets(presets: CompanionPresetDefinitions): void {
 		presets[`prolume_layer_${n}_solo`] = {
 			type: 'button',
 			category: PROLUME_LAYERS,
-			name: `Camada ${n}: solo`,
+			name: `Layer ${n}: solo`,
 			style: { text: `S\\nL${n}`, size: '18', color: WHITE, bgcolor: BUTTON },
 			steps: [{ down: [{ actionId: 'layerSolo', options: { layer, mode: 'toggle' } }], up: [] }],
 			feedbacks: [{ feedbackId: 'layerSolo', options: { layer }, style: { bgcolor: CYAN, color: BLACK } }],
@@ -202,7 +202,7 @@ function addProLumePresets(presets: CompanionPresetDefinitions): void {
 		presets[`prolume_layer_${n}_remaining`] = {
 			type: 'button',
 			category: PROLUME_LAYERS,
-			name: `Camada ${n}: tempo restante`,
+			name: `Layer ${n}: remaining time`,
 			style: { text: `L${n}\\n$(projetech-studio:layer_${n}_remaining)`, size: '18', color: WHITE, bgcolor: BUTTON },
 			steps: [{ down: [], up: [] }],
 			feedbacks: [{ feedbackId: 'layerEnding', options: { layer }, style: { bgcolor: RED, color: WHITE } }],

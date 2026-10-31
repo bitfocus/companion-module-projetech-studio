@@ -33,7 +33,7 @@ const xml = [
 	'    <auxOutput number="3" active="True" mode="Program" />',
 	'  </auxOutputs>',
 	'  <sync role="Slave" state="Ready" connected="True" partner="PC-PALCO" partnerAddress="192.168.0.10:48761" term="3" promoted="False" partnerStreaming="True" />',
-	// Modo ProLume (1.5): the attributes column= and clip= share their names with child elements.
+	// ProLume (1.5): the attributes column= and clip= share their names with child elements.
 	'  <composition enabled="True" master="80" column="2" selectedLayer="1" selectedColumn="1">',
 	'    <column number="1" key="c1" name="Abertura" />',
 	'    <column number="2" key="c2" name="Encerramento &amp; créditos" />',
@@ -153,7 +153,7 @@ test('reads the master/slave link and the connection state', () => {
 	assert.equal(api.state.sync.promoted, false)
 })
 
-test('reads the auxiliary outputs (Saída 2 follows <external>)', () => {
+test('reads the auxiliary outputs (output 2 follows <external>)', () => {
 	assert.deepEqual(api.state.auxOutputs, [
 		{ number: 2, active: false, mode: 'Multiview' },
 		{ number: 3, active: true, mode: 'Program' },
@@ -181,7 +181,7 @@ test('follows activator pushes', async () => {
 	assert.equal(api.state.recording, true)
 })
 
-test('reads the Modo ProLume grid (a layer with one clip, a layer with two)', () => {
+test('reads the ProLume grid (a layer with one clip, a layer with two)', () => {
 	const c = api.state.composition
 	assert.ok(c)
 	assert.deepEqual([c.enabled, c.master, c.column, c.selectedLayer, c.selectedColumn], [true, 80, 2, 1, 1])
@@ -316,17 +316,47 @@ test('the presets use only actions, feedbacks and options that exist', () => {
 			for (const option of Object.keys(f.options)) assert.ok(ids.includes(option), `${id}: ${f.feedbackId}.${option}`)
 		}
 	}
-	const prolume = Object.values(presets).filter((p) => p.category.startsWith('Modo ProLume'))
+	const prolume = Object.values(presets).filter((p) => p.category.startsWith('ProLume'))
 	assert.equal(prolume.length, 64 + 8 + 3 + 8 * 4)
 	assert.deepEqual(
 		[...new Set(prolume.map((p) => p.category))],
-		['Modo ProLume: clipes', 'Modo ProLume: colunas', 'Modo ProLume: camadas'],
+		['ProLume: clips', 'ProLume: columns', 'ProLume: layers'],
 	)
 	assert.equal(presets.prolume_clip_8_1.steps[0].down[0].actionId, 'triggerClip') // the top layer first, as on the grid
 	assert.equal(
 		Object.keys(presets).indexOf('prolume_clip_8_1') < Object.keys(presets).indexOf('prolume_clip_1_1'),
 		true,
 	)
+})
+
+test('timer and free function read variables; actions that need an input start at 1', async () => {
+	const functions = []
+	const lines = []
+	const stub = {
+		api: {
+			state: api.state,
+			sendFunction: (name, params) => functions.push([name, params]),
+			send: (l) => lines.push(l),
+		},
+		log: () => {},
+	}
+	const actions = getActions(stub)
+	const vars = { '$(internal:t)': '00:10:00', '$(internal:f)': 'PreviewInput', '$(internal:x)': '2' }
+	const ctx = { parseVariablesInString: async (text) => text.replace(/\$\(internal:\w\)/g, (m) => vars[m]) }
+	await actions.timer.callback({ options: { cmd: 'SetCountdown', value: '$(internal:t)' } }, ctx)
+	await actions.timer.callback({ options: { cmd: 'StartCountdown', value: '$(internal:t)' } }, ctx)
+	assert.deepEqual(functions, [
+		['SetCountdown', { Value: '00:10:00' }],
+		['StartCountdown', {}],
+	])
+	await actions.raw.callback({ options: { name: '$(internal:f)', params: 'Input=$(internal:x)' } }, ctx)
+	await actions.raw.callback({ options: { name: ' ', params: '' } }, ctx)
+	assert.deepEqual(lines, ['FUNCTION PreviewInput Input=2'])
+	const option = (action, id) => actions[action].options.find((o) => o.id === id)
+	assert.equal(option('timer', 'value').isVisibleExpression, "$(options:cmd) == 'SetCountdown'")
+	for (const id of ['previewInput', 'take', 'overlay', 'audio', 'setVolume'])
+		assert.equal(option(id, 'input').min, 1, id)
+	for (const id of ['cut', 'fade', 'playback', 'loop']) assert.equal(option(id, 'input').min, 0, id)
 })
 
 test('the grid feedbacks read the state (numbers, names and variables)', async () => {
@@ -361,6 +391,22 @@ test('sends the grid functions with encoded names and follows the grid activator
 	assert.equal(c.column, 1)
 	assert.equal(c.layers[1].bypass, false)
 	assert.equal(api.state.recording, true) // the legacy "Recording 1" still works
+})
+
+test('stop() closes the connection and clears the state (address removed from the settings)', async () => {
+	const other = new StudioApi(fakeInstance())
+	other.connect('127.0.0.1', server.port, 100)
+	await wait(400)
+	assert.equal(other.state.connected, true)
+	assert.equal(other.state.inputs.length, 3)
+	other.stop()
+	const xmlRequests = server.received.filter((l) => l === 'XML').length
+	await wait(400)
+	assert.equal(other.state.connected, false)
+	assert.equal(other.state.tally, '')
+	assert.equal(other.state.inputs.length, 0)
+	assert.equal(other.state.composition, null)
+	assert.equal(server.received.filter((l) => l === 'XML').length, xmlRequests) // no more polling
 })
 
 test('clears the state when the connection drops', async () => {

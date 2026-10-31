@@ -11,6 +11,7 @@ import { getActions } from './actions.js'
 import { getFeedbacks } from './feedbacks.js'
 import { getVariableDefinitions, getVariableValues } from './variables.js'
 import { getPresets } from './presets.js'
+import { UpgradeScripts } from './upgrades.js'
 
 /**
  * Companion connection for Projetech Studio. The TCP protocol lives in StudioApi; this class wires it to Companion
@@ -64,7 +65,9 @@ export class StudioInstance extends InstanceBase<StudioConfig> {
 
 	private reconnect(): void {
 		if (!this.config.host) {
-			this.updateStatus(InstanceStatus.BadConfig, 'Informe o IP do Projetech Studio')
+			// Without an address the previous connection must not keep running (and its state must not stay on the buttons).
+			this.api.stop()
+			this.updateStatus(InstanceStatus.BadConfig, 'Set the IP address of Projetech Studio')
 			return
 		}
 		this.updateStatus(InstanceStatus.Connecting)
@@ -72,4 +75,4 @@ export class StudioInstance extends InstanceBase<StudioConfig> {
 	}
 }
 
-runEntrypoint(StudioInstance, [])
+runEntrypoint(StudioInstance, UpgradeScripts)

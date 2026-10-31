@@ -23,7 +23,7 @@ export const DIM_TEXT = combineRgb(90, 94, 104)
 
 /**
  * Boolean feedbacks. Tally comes from the pushed vMix tally string (one digit per input: 0 off, 1 program, 2 preview);
- * the other flags come from activator pushes and the polled XML state, the Modo ProLume grid included.
+ * the other flags come from activator pushes and the polled XML state, the ProLume grid included.
  */
 export function getFeedbacks(instance: StudioInstance): CompanionFeedbackDefinitions {
 	const api = instance.api
@@ -48,19 +48,19 @@ export function getFeedbacks(instance: StudioInstance): CompanionFeedbackDefinit
 	return {
 		tally: {
 			type: 'boolean',
-			name: 'Tally do input',
-			description: 'Verdadeiro quando o input está no ar (programa) ou no preview',
+			name: 'Input tally',
+			description: 'True when the input is on air (program) or on preview',
 			defaultStyle: { bgcolor: RED, color: WHITE },
 			options: [
 				{ type: 'number', id: 'input', label: 'Input', default: 1, min: 1, max: 999 },
 				{
 					type: 'dropdown',
 					id: 'which',
-					label: 'Estado',
+					label: 'State',
 					default: 'program',
 					choices: [
-						{ id: 'program', label: 'No ar (vermelho)' },
-						{ id: 'preview', label: 'Preview (verde)' },
+						{ id: 'program', label: 'On air (red)' },
+						{ id: 'preview', label: 'Preview (green)' },
 					],
 				},
 			],
@@ -72,32 +72,32 @@ export function getFeedbacks(instance: StudioInstance): CompanionFeedbackDefinit
 		},
 		recording: {
 			type: 'boolean',
-			name: 'Gravando',
-			description: 'Gravação do PGM em andamento',
+			name: 'Recording',
+			description: 'The program is being recorded',
 			defaultStyle: { bgcolor: RED, color: WHITE },
 			options: [],
 			callback: () => api.state.recording,
 		},
 		streaming: {
 			type: 'boolean',
-			name: 'Transmitindo',
-			description: 'Pelo menos um stream no ar',
+			name: 'Streaming',
+			description: 'At least one stream is on air',
 			defaultStyle: { bgcolor: RED, color: WHITE },
 			options: [],
 			callback: () => api.state.streaming,
 		},
 		output: {
 			type: 'boolean',
-			name: 'Saída LED ligada',
-			description: 'Janela de saída no monitor do LED',
+			name: 'LED output on',
+			description: 'The output window on the LED monitor is on',
 			defaultStyle: { bgcolor: RED, color: WHITE },
 			options: [],
 			callback: () => api.state.fullscreen,
 		},
 		aux: {
 			type: 'boolean',
-			name: 'Saída auxiliar ligada',
-			description: 'Saída 2, 3, 4 ou 5 (multiview, input ou programa em outro monitor) ligada',
+			name: 'Auxiliary output on',
+			description: 'Output 2, 3, 4 or 5 (multiview, input or program on another monitor) is on',
 			defaultStyle: { bgcolor: combineRgb(18, 196, 248), color: BLACK },
 			options: [auxOutputOption],
 			callback: (fb) => api.auxActive(auxOutputNumber(fb.options.output)),
@@ -105,26 +105,26 @@ export function getFeedbacks(instance: StudioInstance): CompanionFeedbackDefinit
 		fadeToBlack: {
 			type: 'boolean',
 			name: 'Fade to black',
-			description: 'Saída em preto',
+			description: 'The output is faded to black',
 			defaultStyle: { bgcolor: combineRgb(255, 152, 0), color: BLACK },
 			options: [],
 			callback: () => api.state.fadeToBlack,
 		},
 		syncRole: {
 			type: 'boolean',
-			name: 'Papel na sincronia é…',
-			description: 'Sincronia master/slave: verdadeiro quando este Projetech Studio tem o papel escolhido',
+			name: 'Master/slave role is…',
+			description: 'True when this Projetech Studio has the chosen role on the master/slave link',
 			defaultStyle: { bgcolor: GREEN, color: WHITE },
 			options: [
 				{
 					type: 'dropdown',
 					id: 'role',
-					label: 'Papel',
+					label: 'Role',
 					default: 'master',
 					choices: [
 						{ id: 'master', label: 'MASTER' },
 						{ id: 'slave', label: 'SLAVE' },
-						{ id: 'standalone', label: 'Independente' },
+						{ id: 'standalone', label: 'Standalone' },
 					],
 				},
 			],
@@ -132,25 +132,25 @@ export function getFeedbacks(instance: StudioInstance): CompanionFeedbackDefinit
 		},
 		connected: {
 			type: 'boolean',
-			name: 'Conectado ao Projetech Studio',
-			description: 'A conexão do Companion com este Projetech Studio está ativa',
+			name: 'Connected to Projetech Studio',
+			description: "Companion's connection to this Projetech Studio is up",
 			defaultStyle: { bgcolor: GREEN, color: WHITE },
 			options: [],
 			callback: () => api.state.connected,
 		},
-		// ---- Modo ProLume (the clip grid, Projetech Studio 1.5): ids and option ids are stored in buttons, never rename them.
+		// ---- ProLume (the clip grid, Projetech Studio 1.5): ids and option ids are stored in buttons, never rename them.
 		clipActive: {
 			type: 'boolean',
-			name: 'Modo ProLume: clipe no ar',
-			description: 'O clipe da célula (camada × coluna) está no ar',
+			name: 'ProLume: clip on air',
+			description: 'The clip of the cell (layer × column) is on air',
 			defaultStyle: { bgcolor: GREEN, color: WHITE },
 			options: [layerOption(), columnOption()],
 			callback: async (fb, ctx) => (await cellOf(fb, ctx)).clip?.connected ?? false,
 		},
 		clipSelected: {
 			type: 'boolean',
-			name: 'Modo ProLume: célula selecionada',
-			description: 'A célula (camada × coluna) é a selecionada (CLIPE SELECIONADO)',
+			name: 'ProLume: selected cell',
+			description: 'The cell (layer × column) is the selected one',
 			defaultStyle: { bgcolor: YELLOW, color: BLACK },
 			options: [layerOption(), columnOption()],
 			callback: async (fb, ctx) => {
@@ -161,16 +161,16 @@ export function getFeedbacks(instance: StudioInstance): CompanionFeedbackDefinit
 		},
 		clipEmpty: {
 			type: 'boolean',
-			name: 'Modo ProLume: célula vazia',
-			description: 'A célula (camada × coluna) não tem clipe (ou não existe na grade)',
+			name: 'ProLume: empty cell',
+			description: 'The cell (layer × column) has no clip (or is not on the grid)',
 			defaultStyle: { bgcolor: DIM_BG, color: DIM_TEXT },
 			options: [layerOption(), columnOption()],
 			callback: async (fb, ctx) => (await cellOf(fb, ctx)).clip === undefined,
 		},
 		columnActive: {
 			type: 'boolean',
-			name: 'Modo ProLume: coluna disparada',
-			description: 'A coluna é a disparada por último',
+			name: 'ProLume: column fired',
+			description: 'The column is the one fired last',
 			defaultStyle: { bgcolor: GREEN, color: WHITE },
 			options: [columnOption()],
 			callback: async (fb, ctx) => {
@@ -180,32 +180,32 @@ export function getFeedbacks(instance: StudioInstance): CompanionFeedbackDefinit
 		},
 		layerBypass: {
 			type: 'boolean',
-			name: 'Modo ProLume: camada em bypass',
-			description: 'A camada está em bypass (fora do ar, vídeo e áudio)',
+			name: 'ProLume: layer bypassed',
+			description: 'The layer is bypassed (off air, video and audio)',
 			defaultStyle: { bgcolor: ORANGE, color: BLACK },
 			options: [layerOption()],
 			callback: async (fb, ctx) => (await layerOf(fb, ctx))?.bypass ?? false,
 		},
 		layerSolo: {
 			type: 'boolean',
-			name: 'Modo ProLume: camada em solo',
-			description: 'A camada está em solo (só as camadas em solo são vistas e ouvidas)',
+			name: 'ProLume: layer solo',
+			description: 'The layer is soloed (only soloed layers are seen and heard)',
 			defaultStyle: { bgcolor: CYAN, color: BLACK },
 			options: [layerOption()],
 			callback: async (fb, ctx) => (await layerOf(fb, ctx))?.solo ?? false,
 		},
 		layerEnding: {
 			type: 'boolean',
-			name: 'Modo ProLume: clipe da camada terminando',
-			description: 'O tempo restante do clipe da camada está no aviso (vermelho na grade)',
+			name: "ProLume: layer's clip ending",
+			description: "The remaining time of the layer's clip is in the warning range (red on the grid)",
 			defaultStyle: { bgcolor: RED, color: WHITE },
 			options: [layerOption()],
 			callback: async (fb, ctx) => (await layerOf(fb, ctx))?.warning ?? false,
 		},
 		compositionMode: {
 			type: 'boolean',
-			name: 'Modo ProLume ligado',
-			description: 'O Modo ProLume está ligado neste Projetech Studio (a grade comanda o programa)',
+			name: 'ProLume mode on',
+			description: 'ProLume mode is on in this Projetech Studio (the grid drives the program)',
 			defaultStyle: { bgcolor: VIOLET, color: WHITE },
 			options: [],
 			callback: () => api.state.composition?.enabled ?? false,

@@ -17,7 +17,7 @@ export interface StudioInput {
 	loop: boolean
 }
 
-/** An auxiliary output ("Saída 2" to "Saída 5"): a multiview, one input or the program on another monitor. */
+/** An auxiliary output (outputs 2 to 5): a multiview, one input or the program on another monitor. */
 export interface AuxOutputState {
 	number: number
 	active: boolean
@@ -25,11 +25,11 @@ export interface AuxOutputState {
 	mode: string
 }
 
-/** A column of the Modo ProLume grid (`<column>` of `<composition>`), Coluna 1 = the left one. */
+/** A column of the ProLume grid (`<column>` of `<composition>`), column 1 = the left one. */
 export interface CompositionColumn {
 	number: number
 	key: string
-	/** The name shown on the grid ("Coluna N" when it has none). */
+	/** The name shown on the grid (Projetech Studio's default name when it has none). */
 	name: string
 }
 
@@ -51,11 +51,11 @@ export interface CompositionClip {
 	connected: boolean
 }
 
-/** A layer of the grid (`<layer>`); Camada 1 is the bottom one. */
+/** A layer of the grid (`<layer>`); layer 1 is the bottom one. */
 export interface CompositionLayer {
 	number: number
 	key: string
-	/** The name shown on the grid ("Camada N" when it has none). */
+	/** The name shown on the grid (Projetech Studio's default name when it has none). */
 	name: string
 	/** 0–100. */
 	opacity: number
@@ -84,7 +84,7 @@ export interface CompositionLayer {
 	clips: CompositionClip[]
 }
 
-/** The Modo ProLume grid (`<composition>`, Projetech Studio 1.5 or newer, whenever the project has a grid). */
+/** The ProLume grid (`<composition>`, Projetech Studio 1.5 or newer, whenever the project has a grid). */
 export interface CompositionState {
 	/** The mode is on (the grid drives the program). */
 	enabled: boolean
@@ -112,7 +112,7 @@ export interface StudioState {
 	fullscreen: boolean
 	/** Output 2 on (vMix's external output; pushed by the External activator). */
 	external: boolean
-	/** Every auxiliary output, Saída 2 first (the `<auxOutputs>` element; empty for Projetech Studio before 1.2.12). */
+	/** Every auxiliary output, output 2 first (the `<auxOutputs>` element; empty for Projetech Studio before 1.2.12). */
 	auxOutputs: AuxOutputState[]
 	fadeToBlack: boolean
 	/** vMix tally string: one digit per input in list order, 0 = off, 1 = program, 2 = preview. */
@@ -121,7 +121,7 @@ export interface StudioState {
 	connected: boolean
 	/** Master/slave link of this Projetech Studio with another one (the `<sync>` element of the XML state). */
 	sync: SyncState
-	/** The Modo ProLume grid; null when the project has none or Projetech Studio is older than 1.5. */
+	/** The ProLume grid; null when the project has none or Projetech Studio is older than 1.5. */
 	composition: CompositionState | null
 }
 
@@ -138,7 +138,7 @@ export interface SyncState {
 	partnerAddress: string
 	/** This computer took over after its master stopped answering or closed. */
 	promoted: boolean
-	/** The partner is streaming ("Assumir transmissão" is possible here). */
+	/** The partner is streaming (this computer can take the stream). */
 	partnerStreaming: boolean
 }
 
@@ -153,7 +153,7 @@ const ACTIVATOR_FLAGS: Record<string, Flag> = {
 	FadeToBlack: 'fadeToBlack',
 }
 
-/** The feedbacks that read the Modo ProLume grid: re-checked when the grid's signature changes. */
+/** The feedbacks that read the ProLume grid: re-checked when the grid's signature changes. */
 export const COMPOSITION_FEEDBACKS = [
 	'clipActive',
 	'clipSelected',
@@ -230,7 +230,7 @@ const attrBool = (n: XmlNode | undefined, name: string): boolean => attr(n, name
 /** The text of a text-only element (`<active>3</active>`), or of an element with attributes and text (`<input …>Name</input>`). */
 const text = (v: unknown): string => (typeof v === 'object' && v !== null ? asText((v as XmlNode).text) : asText(v))
 
-/** The `<composition>` element (the Modo ProLume grid) as state; null when it is absent. */
+/** The `<composition>` element (the ProLume grid) as state; null when it is absent. */
 export function parseComposition(raw: unknown, readAt: number): CompositionState | null {
 	const c = nodes(raw)[0]
 	if (!c) return null
@@ -335,6 +335,12 @@ export class StudioApi {
 		}, CLOCK_INTERVAL_MS)
 	}
 
+	/** Closes the connection and forgets the last state, so no button keeps showing it (no address configured). */
+	stop(): void {
+		this.disconnect()
+		this.clearState()
+	}
+
 	disconnect(): void {
 		if (this.pollTimer) clearInterval(this.pollTimer)
 		if (this.clockTimer) clearInterval(this.clockTimer)
@@ -350,7 +356,7 @@ export class StudioApi {
 	send(line: string): void {
 		if (!this.socket?.isConnected) return
 		this.socket.send(line + '\r\n').catch((err: unknown) => {
-			this.instance.log('debug', `Falha ao enviar "${line}": ${err instanceof Error ? err.message : String(err)}`)
+			this.instance.log('debug', `Could not send "${line}": ${err instanceof Error ? err.message : String(err)}`)
 		})
 	}
 
@@ -367,7 +373,7 @@ export class StudioApi {
 		return this.state.inputs.find((i) => i.number === n)
 	}
 
-	/** Auxiliary output `n` is on; Saída 2 follows `<external>` and its activator, so it works with any version. */
+	/** Auxiliary output `n` is on; output 2 follows `<external>` and its activator, so it works with any version. */
 	auxActive(n: number): boolean {
 		if (n <= 2) return this.state.external
 		return this.state.auxOutputs.find((o) => o.number === n)?.active ?? false
@@ -386,7 +392,7 @@ export class StudioApi {
 	private onData(chunk: Buffer): void {
 		this.buffer = this.buffer.length === 0 ? chunk : Buffer.concat([this.buffer, chunk])
 		if (this.buffer.length > MAX_BUFFER_BYTES) {
-			this.instance.log('warn', 'Resposta grande demais do Projetech Studio, descartada')
+			this.instance.log('warn', 'Reply from Projetech Studio too large, dropped')
 			this.buffer = Buffer.alloc(0)
 			return
 		}
@@ -527,7 +533,7 @@ export class StudioApi {
 			this.state.composition = parseComposition(doc.composition, Date.now())
 			this.afterStateChange(this.flagSignature() !== flagsBefore, this.compositionSignature() !== compositionBefore)
 		} catch (err) {
-			this.instance.log('debug', `XML inválido: ${err instanceof Error ? err.message : String(err)}`)
+			this.instance.log('debug', `Invalid XML: ${err instanceof Error ? err.message : String(err)}`)
 		}
 	}
 

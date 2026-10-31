@@ -11,11 +11,11 @@ import { findLayer } from './composition.js'
 /**
  * Actions map to Projetech Studio API functions (same names and parameters as vMix functions, e.g. `Cut`, `Fade`,
  * `PreviewInput`, `SetVolume`). Inputs are numbered in the order of the Projetech Studio list, starting at 1.
- * The Modo ProLume actions (Projetech Studio 1.5) take a layer and a column by number or by name.
+ * The ProLume actions (Projetech Studio 1.5) take a layer and a column by number or by name.
  */
 
-/** Modo ProLume layer: a number (Camada 1 = the bottom one) or the name shown on the grid; variables allowed. */
-export const layerOption = (label = 'Camada (número, 1 = a de baixo, ou nome)'): CompanionInputFieldTextInput => ({
+/** ProLume layer: a number (layer 1 = the bottom one) or the name shown on the grid; variables allowed. */
+export const layerOption = (label = 'Layer (number, 1 = bottom, or name)'): CompanionInputFieldTextInput => ({
 	type: 'textinput',
 	id: 'layer',
 	label,
@@ -23,8 +23,8 @@ export const layerOption = (label = 'Camada (número, 1 = a de baixo, ou nome)')
 	useVariables: true,
 })
 
-/** Modo ProLume column: a number (Coluna 1 = the left one) or the name shown on the grid; variables allowed. */
-export const columnOption = (label = 'Coluna (número ou nome)'): CompanionInputFieldTextInput => ({
+/** ProLume column: a number (column 1 = the left one) or the name shown on the grid; variables allowed. */
+export const columnOption = (label = 'Column (number or name)'): CompanionInputFieldTextInput => ({
 	type: 'textinput',
 	id: 'column',
 	label,
@@ -35,7 +35,7 @@ export const columnOption = (label = 'Coluna (número ou nome)'): CompanionInput
 /** What an action's or a feedback's callback context offers to read variables. */
 export type VariableParser = Pick<CompanionActionContext, 'parseVariablesInString'>
 
-/** The text of a layer/column option, with its variables replaced (without a round trip when it has none). */
+/** The text of a text option, with its variables replaced (without a round trip when it has none). */
 export async function optionText(context: VariableParser, value: unknown): Promise<string> {
 	const raw = (typeof value === 'string' ? value : typeof value === 'number' ? String(value) : '').trim()
 	return raw.includes('$(') ? (await context.parseVariablesInString(raw)).trim() : raw
@@ -44,19 +44,19 @@ export async function optionText(context: VariableParser, value: unknown): Promi
 const levelModeOption: CompanionInputFieldDropdown = {
 	type: 'dropdown',
 	id: 'mode',
-	label: 'Modo',
+	label: 'Mode',
 	default: 'set',
 	choices: [
-		{ id: 'set', label: 'Definir' },
-		{ id: 'add', label: 'Aumentar' },
-		{ id: 'subtract', label: 'Diminuir' },
+		{ id: 'set', label: 'Set' },
+		{ id: 'add', label: 'Increase' },
+		{ id: 'subtract', label: 'Decrease' },
 	],
 }
 
 const levelValueOption = (fallback = 100): CompanionInputFieldNumber => ({
 	type: 'number',
 	id: 'value',
-	label: 'Valor (0–100)',
+	label: 'Value (0–100)',
 	default: fallback,
 	min: 0,
 	max: 100,
@@ -65,19 +65,19 @@ const levelValueOption = (fallback = 100): CompanionInputFieldNumber => ({
 const switchOption: CompanionInputFieldDropdown = {
 	type: 'dropdown',
 	id: 'mode',
-	label: 'Modo',
+	label: 'Mode',
 	default: 'toggle',
 	choices: [
-		{ id: 'on', label: 'Ligar' },
-		{ id: 'off', label: 'Desligar' },
-		{ id: 'toggle', label: 'Alternar' },
+		{ id: 'on', label: 'On' },
+		{ id: 'off', label: 'Off' },
+		{ id: 'toggle', label: 'Toggle' },
 	],
 }
 
 const directionOption = (next: string, prev: string): CompanionInputFieldDropdown => ({
 	type: 'dropdown',
 	id: 'direction',
-	label: 'Direção',
+	label: 'Direction',
 	default: 'next',
 	choices: [
 		{ id: 'next', label: next },
@@ -93,26 +93,35 @@ export function levelValue(mode: unknown, value: unknown, current: number | unde
 	return Math.max(0, Math.min(100, current + (mode === 'add' ? v : -v)))
 }
 
-/** Input number option; for actions where it is optional, 0 means "the input on preview" (or the program). */
-const inputOption = (label = 'Input (número na lista; 0 = o que está no preview)') => ({
-	type: 'number' as const,
+/**
+ * Input number option. Where the input is optional (min 0), 0 means "the input on preview" (or the program); actions
+ * that always need an input start at 1.
+ */
+const inputOption = (
+	label = 'Input (number in the list; 0 = the one on preview)',
+	min = 0,
+): CompanionInputFieldNumber => ({
+	type: 'number',
 	id: 'input',
 	label,
 	default: 1,
-	min: 0,
+	min,
 	max: 999,
 })
 
-/** Auxiliary output: "Saída 2" (vMix's external output) to "Saída 5" (Projetech Studio 1.2.11 or newer). */
+/** An input every action of its kind needs: 1 or more. */
+const requiredInputOption = (): CompanionInputFieldNumber => inputOption('Input (number in the list)', 1)
+
+/** Auxiliary output: output 2 (vMix's external output) to output 5 (Projetech Studio 1.2.11 or newer). */
 export const auxOutputOption = {
 	type: 'dropdown' as const,
 	id: 'output',
-	label: 'Saída',
+	label: 'Output',
 	default: 2,
-	choices: [2, 3, 4, 5].map((n) => ({ id: n, label: `Saída ${n}` })),
+	choices: [2, 3, 4, 5].map((n) => ({ id: n, label: `Output ${n}` })),
 }
 
-/** The output chosen; buttons made before the option existed act on Saída 2. */
+/** The output chosen; buttons made before the option existed act on output 2. */
 export const auxOutputNumber = (value: unknown): number => Number(value) || 2
 
 export function getActions(instance: StudioInstance): CompanionActionDefinitions {
@@ -124,7 +133,7 @@ export function getActions(instance: StudioInstance): CompanionActionDefinitions
 		if (level === undefined) {
 			instance.log(
 				'warn',
-				`Modo ProLume: ${what} não está no estado do Projetech Studio (a grade é da versão 1.5 ou mais nova)`,
+				`ProLume: ${what} is not in the Projetech Studio state (the grid needs Projetech Studio 1.5 or newer)`,
 			)
 			return
 		}
@@ -133,7 +142,7 @@ export function getActions(instance: StudioInstance): CompanionActionDefinitions
 
 	return {
 		cut: {
-			name: 'Cut (take sem transição)',
+			name: 'Cut (take without transition)',
 			options: [inputOption()],
 			callback: async (ev) => api.sendFunction('Cut', withInput(ev.options.input)),
 		},
@@ -144,7 +153,7 @@ export function getActions(instance: StudioInstance): CompanionActionDefinitions
 				{
 					type: 'number',
 					id: 'duration',
-					label: 'Duração (ms, 0 = padrão do projeto)',
+					label: 'Duration (ms, 0 = project default)',
 					default: 0,
 					min: 0,
 					max: 10000,
@@ -157,129 +166,129 @@ export function getActions(instance: StudioInstance): CompanionActionDefinitions
 				}),
 		},
 		previewInput: {
-			name: 'Preview: carregar input',
-			options: [inputOption('Input')],
+			name: 'Preview: load input',
+			options: [requiredInputOption()],
 			callback: async (ev) => api.sendFunction('PreviewInput', { Input: Number(ev.options.input) }),
 		},
 		take: {
-			name: 'Take (input direto no ar, transição padrão)',
-			options: [inputOption('Input')],
+			name: 'Take (input straight to air, default transition)',
+			options: [requiredInputOption()],
 			callback: async (ev) => api.sendFunction('ActiveInput', { Input: Number(ev.options.input) }),
 		},
 		stop: {
-			name: 'Stop (volta para a tela de espera)',
+			name: 'Stop (back to the wait screen)',
 			options: [],
 			callback: async () => api.sendFunction('Stop'),
 		},
 		fadeToBlack: {
-			name: 'Fade to black (alternar)',
+			name: 'Fade to black (toggle)',
 			options: [],
 			callback: async () => api.sendFunction('FadeToBlack'),
 		},
 		playback: {
-			name: 'Reprodução',
+			name: 'Playback',
 			options: [
 				{
 					type: 'dropdown',
 					id: 'cmd',
-					label: 'Comando',
+					label: 'Command',
 					default: 'PlayPause',
 					choices: [
 						{ id: 'Play', label: 'Play' },
-						{ id: 'Pause', label: 'Pausar' },
-						{ id: 'PlayPause', label: 'Play / Pausa' },
-						{ id: 'Restart', label: 'Reiniciar' },
+						{ id: 'Pause', label: 'Pause' },
+						{ id: 'PlayPause', label: 'Play / Pause' },
+						{ id: 'Restart', label: 'Restart' },
 					],
 				},
-				inputOption('Input (0 = programa)'),
+				inputOption('Input (0 = program)'),
 			],
 			callback: async (ev) => api.sendFunction(String(ev.options.cmd), withInput(ev.options.input)),
 		},
 		loop: {
-			name: 'Loop do input',
+			name: 'Input loop',
 			options: [
 				{
 					type: 'dropdown',
 					id: 'cmd',
-					label: 'Modo',
+					label: 'Mode',
 					default: 'Loop',
 					choices: [
-						{ id: 'Loop', label: 'Alternar' },
-						{ id: 'LoopOn', label: 'Ligar' },
-						{ id: 'LoopOff', label: 'Desligar' },
+						{ id: 'Loop', label: 'Toggle' },
+						{ id: 'LoopOn', label: 'On' },
+						{ id: 'LoopOff', label: 'Off' },
 					],
 				},
-				inputOption('Input (0 = programa)'),
+				inputOption('Input (0 = program)'),
 			],
 			callback: async (ev) => api.sendFunction(String(ev.options.cmd), withInput(ev.options.input)),
 		},
 		overlay: {
-			name: 'Overlay (sobre o PGM)',
+			name: 'Overlay (over the program)',
 			options: [
 				{
 					type: 'dropdown',
 					id: 'cmd',
-					label: 'Modo',
+					label: 'Mode',
 					default: 'OverlayInput1',
 					choices: [
-						{ id: 'OverlayInput1', label: 'Alternar' },
-						{ id: 'OverlayInput1In', label: 'Ligar' },
-						{ id: 'OverlayInput1Off', label: 'Desligar' },
+						{ id: 'OverlayInput1', label: 'Toggle' },
+						{ id: 'OverlayInput1In', label: 'On' },
+						{ id: 'OverlayInput1Off', label: 'Off' },
 					],
 				},
-				inputOption('Input'),
+				requiredInputOption(),
 			],
 			callback: async (ev) => api.sendFunction(String(ev.options.cmd), { Input: Number(ev.options.input) }),
 		},
 		overlayAllOff: {
-			name: 'Desligar todos os overlays',
+			name: 'All overlays off',
 			options: [],
 			callback: async () => api.sendFunction('OverlayInputAllOff'),
 		},
 		audio: {
-			name: 'Áudio do input para o PGM',
+			name: 'Input audio to program',
 			options: [
 				{
 					type: 'dropdown',
 					id: 'cmd',
-					label: 'Modo',
+					label: 'Mode',
 					default: 'Audio',
 					choices: [
-						{ id: 'Audio', label: 'Alternar' },
-						{ id: 'AudioOn', label: 'Ligar' },
-						{ id: 'AudioOff', label: 'Desligar' },
+						{ id: 'Audio', label: 'Toggle' },
+						{ id: 'AudioOn', label: 'On' },
+						{ id: 'AudioOff', label: 'Off' },
 					],
 				},
-				inputOption('Input'),
+				requiredInputOption(),
 			],
 			callback: async (ev) => api.sendFunction(String(ev.options.cmd), { Input: Number(ev.options.input) }),
 		},
 		setVolume: {
-			name: 'Volume do input',
+			name: 'Input volume',
 			options: [
-				inputOption('Input'),
+				requiredInputOption(),
 				{ type: 'number', id: 'value', label: 'Volume (0–100)', default: 100, min: 0, max: 100 },
 			],
 			callback: async (ev) =>
 				api.sendFunction('SetVolume', { Input: Number(ev.options.input), Value: Number(ev.options.value) }),
 		},
 		setMasterVolume: {
-			name: 'Volume master',
+			name: 'Master volume',
 			options: [{ type: 'number', id: 'value', label: 'Volume (0–100)', default: 100, min: 0, max: 100 }],
 			callback: async (ev) => api.sendFunction('SetMasterVolume', { Value: Number(ev.options.value) }),
 		},
 		recording: {
-			name: 'Gravação',
+			name: 'Recording',
 			options: [
 				{
 					type: 'dropdown',
 					id: 'cmd',
-					label: 'Comando',
+					label: 'Command',
 					default: 'StartStopRecording',
 					choices: [
-						{ id: 'StartRecording', label: 'Iniciar' },
-						{ id: 'StopRecording', label: 'Parar' },
-						{ id: 'StartStopRecording', label: 'Alternar' },
+						{ id: 'StartRecording', label: 'Start' },
+						{ id: 'StopRecording', label: 'Stop' },
+						{ id: 'StartStopRecording', label: 'Toggle' },
 					],
 				},
 			],
@@ -291,18 +300,18 @@ export function getActions(instance: StudioInstance): CompanionActionDefinitions
 				{
 					type: 'dropdown',
 					id: 'cmd',
-					label: 'Comando',
+					label: 'Command',
 					default: 'StartStopStreaming',
 					choices: [
-						{ id: 'StartStreaming', label: 'Iniciar' },
-						{ id: 'StopStreaming', label: 'Parar' },
-						{ id: 'StartStopStreaming', label: 'Alternar' },
+						{ id: 'StartStreaming', label: 'Start' },
+						{ id: 'StopStreaming', label: 'Stop' },
+						{ id: 'StartStopStreaming', label: 'Toggle' },
 					],
 				},
 				{
 					type: 'number',
 					id: 'slot',
-					label: 'Stream (0 = todos, 1–3 = específico)',
+					label: 'Stream (0 = all, 1–3 = that one)',
 					default: 0,
 					min: 0,
 					max: 3,
@@ -315,39 +324,39 @@ export function getActions(instance: StudioInstance): CompanionActionDefinitions
 				),
 		},
 		output: {
-			name: 'Saída LED',
+			name: 'LED output',
 			options: [
 				{
 					type: 'dropdown',
 					id: 'cmd',
-					label: 'Comando',
+					label: 'Command',
 					default: 'Fullscreen',
 					choices: [
-						{ id: 'Fullscreen', label: 'Alternar' },
-						{ id: 'FullscreenOn', label: 'Ligar' },
-						{ id: 'FullscreenOff', label: 'Desligar' },
+						{ id: 'Fullscreen', label: 'Toggle' },
+						{ id: 'FullscreenOn', label: 'On' },
+						{ id: 'FullscreenOff', label: 'Off' },
 					],
 				},
 			],
 			callback: async (ev) => api.sendFunction(String(ev.options.cmd)),
 		},
 		aux: {
-			name: 'Saída auxiliar (Saída 2 a 5: multiview / input / programa)',
+			name: 'Auxiliary output (outputs 2 to 5: multiview / input / program)',
 			options: [
 				auxOutputOption,
 				{
 					type: 'dropdown',
 					id: 'cmd',
-					label: 'Comando',
+					label: 'Command',
 					default: 'StartStopExternal',
 					choices: [
-						{ id: 'StartExternal', label: 'Ligar' },
-						{ id: 'StopExternal', label: 'Desligar' },
-						{ id: 'StartStopExternal', label: 'Alternar' },
+						{ id: 'StartExternal', label: 'On' },
+						{ id: 'StopExternal', label: 'Off' },
+						{ id: 'StartStopExternal', label: 'Toggle' },
 					],
 				},
 			],
-			// Saída 2 goes without Value, as vMix clients and older Projetech Studio versions send it.
+			// Output 2 goes without Value, as vMix clients and older Projetech Studio versions send it.
 			callback: async (ev) => {
 				const n = auxOutputNumber(ev.options.output)
 				api.sendFunction(String(ev.options.cmd), n > 2 ? { Value: n } : {})
@@ -359,37 +368,44 @@ export function getActions(instance: StudioInstance): CompanionActionDefinitions
 				{
 					type: 'dropdown',
 					id: 'cmd',
-					label: 'Comando',
+					label: 'Command',
 					default: 'StartCountdown',
 					choices: [
-						{ id: 'StartCountdown', label: 'Iniciar' },
-						{ id: 'PauseCountdown', label: 'Pausar' },
-						{ id: 'StopCountdown', label: 'Zerar' },
-						{ id: 'SetCountdown', label: 'Definir tempo' },
+						{ id: 'StartCountdown', label: 'Start' },
+						{ id: 'PauseCountdown', label: 'Pause' },
+						{ id: 'StopCountdown', label: 'Reset' },
+						{ id: 'SetCountdown', label: 'Set time' },
 					],
 				},
-				{ type: 'textinput', id: 'value', label: 'Tempo (hh:mm:ss, só para "Definir")', default: '00:05:00' },
+				{
+					type: 'textinput',
+					id: 'value',
+					label: 'Time (hh:mm:ss)',
+					default: '00:05:00',
+					useVariables: true,
+					isVisibleExpression: `$(options:cmd) == 'SetCountdown'`,
+				},
 			],
-			callback: async (ev) =>
+			callback: async (ev, ctx) =>
 				api.sendFunction(
 					String(ev.options.cmd),
-					ev.options.cmd === 'SetCountdown' ? { Value: String(ev.options.value) } : {},
+					ev.options.cmd === 'SetCountdown' ? { Value: await optionText(ctx, ev.options.value) } : {},
 				),
 		},
 		// Master/slave link: accepted on the slave too (every other command goes to the master).
 		syncTakeOver: {
-			name: 'Sincronia: assumir como master (no slave)',
+			name: 'Master/slave: take over as master (on the slave)',
 			options: [],
 			callback: async () => api.sendFunction('SyncTakeOver'),
 		},
 		syncTakeStream: {
-			name: 'Sincronia: assumir a transmissão',
+			name: 'Master/slave: take the stream',
 			options: [],
 			callback: async () => api.sendFunction('SyncTakeStream'),
 		},
-		// ---- Modo ProLume (the clip grid, Projetech Studio 1.5): ids and option ids are stored in buttons, never rename them.
+		// ---- ProLume (the clip grid, Projetech Studio 1.5): ids and option ids are stored in buttons, never rename them.
 		triggerClip: {
-			name: 'Modo ProLume: disparar clipe (camada e coluna)',
+			name: 'ProLume: trigger clip (layer and column)',
 			options: [layerOption(), columnOption()],
 			callback: async (ev, ctx) =>
 				api.sendFunction('TriggerClip', {
@@ -398,7 +414,7 @@ export function getActions(instance: StudioInstance): CompanionActionDefinitions
 				}),
 		},
 		selectClip: {
-			name: 'Modo ProLume: selecionar clipe (não dispara)',
+			name: 'ProLume: select clip (does not fire)',
 			options: [layerOption(), columnOption()],
 			callback: async (ev, ctx) =>
 				api.sendFunction('SelectClip', {
@@ -407,42 +423,42 @@ export function getActions(instance: StudioInstance): CompanionActionDefinitions
 				}),
 		},
 		triggerColumn: {
-			name: 'Modo ProLume: disparar coluna',
+			name: 'ProLume: trigger column',
 			options: [columnOption()],
 			callback: async (ev, ctx) =>
 				api.sendFunction('TriggerColumn', { Column: await optionText(ctx, ev.options.column) }),
 		},
 		selectColumn: {
-			name: 'Modo ProLume: selecionar coluna (não dispara)',
+			name: 'ProLume: select column (does not fire)',
 			options: [columnOption()],
 			callback: async (ev, ctx) =>
 				api.sendFunction('SelectColumn', { Column: await optionText(ctx, ev.options.column) }),
 		},
 		columnStep: {
-			name: 'Modo ProLume: disparar a próxima / a anterior coluna',
-			options: [directionOption('Próxima coluna', 'Coluna anterior')],
+			name: 'ProLume: trigger the next / previous column',
+			options: [directionOption('Next column', 'Previous column')],
 			callback: async (ev) => api.sendFunction(ev.options.direction === 'prev' ? 'PreviousColumn' : 'NextColumn'),
 		},
 		layerClipStep: {
-			name: 'Modo ProLume: próximo / anterior clipe da camada',
-			options: [layerOption(), directionOption('Próximo clipe', 'Clipe anterior')],
+			name: 'ProLume: next / previous clip of a layer',
+			options: [layerOption(), directionOption('Next clip', 'Previous clip')],
 			callback: async (ev, ctx) =>
 				api.sendFunction(ev.options.direction === 'prev' ? 'LayerPreviousClip' : 'LayerNextClip', {
 					Layer: await optionText(ctx, ev.options.layer),
 				}),
 		},
 		ejectLayer: {
-			name: 'Modo ProLume: ejetar camada',
+			name: 'ProLume: eject layer',
 			options: [layerOption()],
 			callback: async (ev, ctx) => api.sendFunction('EjectLayer', { Layer: await optionText(ctx, ev.options.layer) }),
 		},
 		ejectAll: {
-			name: 'Modo ProLume: ejetar tudo',
+			name: 'ProLume: eject all',
 			options: [],
 			callback: async () => api.sendFunction('EjectAll'),
 		},
 		layerOpacity: {
-			name: 'Modo ProLume: opacidade da camada',
+			name: 'ProLume: layer opacity',
 			options: [layerOption(), levelModeOption, levelValueOption()],
 			callback: async (ev, ctx) => {
 				const layer = await optionText(ctx, ev.options.layer)
@@ -451,12 +467,12 @@ export function getActions(instance: StudioInstance): CompanionActionDefinitions
 					'SetLayerOpacity',
 					{ Layer: layer },
 					levelValue(ev.options.mode, ev.options.value, current),
-					`a camada ${layer}`,
+					`layer ${layer}`,
 				)
 			},
 		},
 		layerVolume: {
-			name: 'Modo ProLume: volume da camada',
+			name: 'ProLume: layer volume',
 			options: [layerOption(), levelModeOption, levelValueOption()],
 			callback: async (ev, ctx) => {
 				const layer = await optionText(ctx, ev.options.layer)
@@ -465,23 +481,23 @@ export function getActions(instance: StudioInstance): CompanionActionDefinitions
 					'SetLayerVolume',
 					{ Layer: layer },
 					levelValue(ev.options.mode, ev.options.value, current),
-					`a camada ${layer}`,
+					`layer ${layer}`,
 				)
 			},
 		},
 		compositionMaster: {
-			name: 'Modo ProLume: master da composição (vídeo)',
+			name: 'ProLume: composition master (video)',
 			options: [levelModeOption, levelValueOption()],
 			callback: async (ev) =>
 				sendLevel(
 					'SetCompositionMaster',
 					{},
 					levelValue(ev.options.mode, ev.options.value, api.state.composition?.master),
-					'o master da composição',
+					'the composition master',
 				),
 		},
 		layerBypass: {
-			name: 'Modo ProLume: bypass da camada (corta vídeo e áudio)',
+			name: 'ProLume: layer bypass (cuts video and audio)',
 			options: [layerOption(), switchOption],
 			callback: async (ev, ctx) =>
 				api.sendFunction(
@@ -490,7 +506,7 @@ export function getActions(instance: StudioInstance): CompanionActionDefinitions
 				),
 		},
 		layerSolo: {
-			name: 'Modo ProLume: solo da camada',
+			name: 'ProLume: layer solo',
 			options: [layerOption(), switchOption],
 			callback: async (ev, ctx) =>
 				api.sendFunction(
@@ -499,18 +515,18 @@ export function getActions(instance: StudioInstance): CompanionActionDefinitions
 				),
 		},
 		layerTransition: {
-			name: 'Modo ProLume: transição da camada',
+			name: 'ProLume: layer transition',
 			options: [
 				layerOption(),
-				{ type: 'number', id: 'ms', label: 'Duração (ms, 0 = corte)', default: 500, min: 0, max: 10000 },
+				{ type: 'number', id: 'ms', label: 'Duration (ms, 0 = cut)', default: 500, min: 0, max: 10000 },
 				{
 					type: 'dropdown',
 					id: 'type',
-					label: 'Tipo',
+					label: 'Type',
 					default: 'Fade',
 					choices: [
 						{ id: 'Fade', label: 'Fade' },
-						{ id: 'Cut', label: 'Corte' },
+						{ id: 'Cut', label: 'Cut' },
 					],
 				},
 			],
@@ -522,7 +538,7 @@ export function getActions(instance: StudioInstance): CompanionActionDefinitions
 				}),
 		},
 		layerBlend: {
-			name: 'Modo ProLume: blend da camada',
+			name: 'ProLume: layer blend',
 			options: [
 				layerOption(),
 				{
@@ -532,9 +548,9 @@ export function getActions(instance: StudioInstance): CompanionActionDefinitions
 					default: 'Alpha',
 					choices: [
 						{ id: 'Alpha', label: 'Normal' },
-						{ id: 'Add', label: 'Somar' },
-						{ id: 'Screen', label: 'Tela' },
-						{ id: 'Multiply', label: 'Multiplicar' },
+						{ id: 'Add', label: 'Add' },
+						{ id: 'Screen', label: 'Screen' },
+						{ id: 'Multiply', label: 'Multiply' },
 						{ id: 'LumaKey', label: 'Luma key' },
 					],
 				},
@@ -545,19 +561,24 @@ export function getActions(instance: StudioInstance): CompanionActionDefinitions
 					Value: String(ev.options.blend ?? 'Alpha'),
 				}),
 		},
-		// Escape hatch for API functions without a dedicated action; the text is sent as typed.
+		// Escape hatch for API functions without a dedicated action; the text is sent as typed, variables replaced.
 		raw: {
-			name: 'Função livre (FUNCTION da API)',
+			name: 'Free API function (FUNCTION)',
 			options: [
-				{ type: 'textinput', id: 'name', label: 'Função', default: 'Cut' },
-				{ type: 'textinput', id: 'params', label: 'Parâmetros (Input=1&Value=50)', default: '' },
+				{ type: 'textinput', id: 'name', label: 'Function', default: 'Cut', useVariables: true },
+				{
+					type: 'textinput',
+					id: 'params',
+					label: 'Parameters (Input=1&Value=50)',
+					default: '',
+					useVariables: true,
+				},
 			],
-			callback: async (ev) =>
-				api.send(
-					String(ev.options.params)
-						? `FUNCTION ${ev.options.name} ${ev.options.params}`
-						: `FUNCTION ${ev.options.name}`,
-				),
+			callback: async (ev, ctx) => {
+				const name = await optionText(ctx, ev.options.name)
+				const params = await optionText(ctx, ev.options.params)
+				if (name) api.send(params ? `FUNCTION ${name} ${params}` : `FUNCTION ${name}`)
+			},
 		},
 	}
 }
